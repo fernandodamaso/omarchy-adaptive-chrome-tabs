@@ -69,10 +69,20 @@ class PolicyConfigTests(unittest.TestCase):
 
 
 class ArbitrationPolicyTests(unittest.TestCase):
-    def test_startup_baselines_initial_scope_when_apply_on_startup_is_false(self):
+    def test_startup_baselines_only_eligible_target_in_enable_snapshot_when_apply_on_startup_is_false(self):
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=False))
         self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 0))
         self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 1000))
+
+    def test_no_browser_at_startup_then_first_eligible_focus_uses_normal_dwell_evaluation(self):
+        policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=False, decision_dwell_ms=100, min_switch_interval_ms=0))
+        self.assertIsNone(policy.observe(obs(eligible=False, focused=False), 0))
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 10))
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 109))
+        request = policy.observe(obs(width=1500, orientation="horizontal"), 110)
+        self.assertIsNotNone(request)
+        self.assertEqual("vertical", request.orientation)
+        self.assertEqual("initial-scope-evaluation", request.reason)
 
     def test_transition_requires_full_dwell_then_emits_exact_state_request(self):
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=False, decision_dwell_ms=750))
@@ -91,13 +101,69 @@ class ArbitrationPolicyTests(unittest.TestCase):
         request = policy.observe(obs(width=1000, orientation="vertical"), 750)
         self.assertEqual("horizontal", request.orientation)
 
-    def test_focus_change_during_dwell_cancels_and_same_region_refocus_does_not_reapply(self):
-        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=750))
+    def test_focus_loss_during_pending_requires_fresh_full_dwell_after_recovery(self):
+        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
         policy.observe(obs(width=1300), 0)
-        policy.observe(obs(width=1500), 100)
-        self.assertIsNone(policy.observe(obs(width=1500, focused=False, eligible=False), 500))
-        self.assertIsNone(policy.observe(obs(width=1500), 2000))
-        self.assertIsNone(policy.observe(obs(width=1500), 4000))
+        policy.observe(obs(width=1500), 10)
+        self.assertIsNone(policy.observe(obs(width=1500, focused=False, eligible=False), 50))
+        self.assertIsNone(policy.observe(obs(width=1500), 200))
+        self.assertIsNone(policy.observe(obs(width=1500), 299))
+        request = policy.observe(obs(width=1500), 300)
+        self.assertEqual("vertical", request.orientation)
+        self.assertEqual("recovery-requalification", request.reason)
+
+    def test_lock_during_pending_requires_fresh_full_dwell_after_unlock(self):
+        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
+        policy.observe(obs(width=1300), 0)
+        policy.observe(obs(width=1500), 10)
+        self.assertIsNone(policy.observe(obs(width=1500, locked=True), 50))
+        self.assertIsNone(policy.observe(obs(width=1500), 500))
+        self.assertIsNone(policy.observe(obs(width=1500), 599))
+        request = policy.observe(obs(width=1500), 600)
+        self.assertEqual("vertical", request.orientation)
+
+    def test_ineligible_fullscreen_immersive_or_kiosk_interruption_requalifies_candidate(self):
+        for mode in ("fullscreen", "immersive", "kiosk"):
+            with self.subTest(mode=mode):
+                policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
+                policy.observe(obs(width=1300), 0)
+                policy.observe(obs(width=1500), 10)
+                self.assertIsNone(policy.observe(obs(width=1500, eligible=False), 50))
+                self.assertIsNone(policy.observe(obs(width=1500), 200))
+                request = policy.observe(obs(width=1500), 300)
+                self.assertEqual("vertical", request.orientation)
+
+    def test_recovery_into_band_clears_interrupted_candidate_then_future_transition_gets_full_dwell(self):
+        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
+        policy.observe(obs(width=1300), 0)
+        policy.observe(obs(width=1500), 10)
+        policy.observe(obs(width=1500, focused=False, eligible=False), 50)
+
+        self.assertIsNone(policy.observe(obs(width=1300), 200))
+        self.assertIsNone(policy.observe(obs(width=1500), 300))
+        self.assertIsNone(policy.observe(obs(width=1500), 399))
+        request = policy.observe(obs(width=1500), 400)
+        self.assertEqual("vertical", request.orientation)
+
+    def test_narrow_candidate_recovery_also_requires_full_dwell(self):
+        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
+        policy.observe(obs(width=1300, orientation="vertical"), 0)
+        policy.observe(obs(width=1000, orientation="vertical"), 10)
+        policy.observe(obs(width=1000, eligible=False, focused=False, orientation="vertical"), 50)
+
+        self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 200))
+        self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 299))
+        request = policy.observe(obs(width=1000, orientation="vertical"), 300)
+        self.assertEqual("horizontal", request.orientation)
+
+    def test_ordinary_settled_same_region_focus_away_and_refocus_is_noop(self):
+        policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=0, min_switch_interval_ms=0))
+        request = policy.observe(obs(width=1500, orientation="horizontal"), 0)
+        policy.verify(request, "vertical", 0)
+
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical", focused=False, eligible=False), 10))
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 20))
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 1000))
 
     def test_same_scope_window_change_during_pending_resets_dwell(self):
         policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=750))
@@ -124,16 +190,11 @@ class ArbitrationPolicyTests(unittest.TestCase):
     def test_manual_external_change_suspends_same_region_until_later_effective_transition(self):
         policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100))
         policy.observe(obs(width=1000, orientation="horizontal"), 0)
-        # External/manual orientation change in narrow.
         self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 10))
-        # Same-region refocus must not correct it.
         policy.observe(obs(width=1000, orientation="vertical", focused=False, eligible=False), 20)
         self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 30))
-        # Band alone does not clear the override or emit.
         self.assertIsNone(policy.observe(obs(width=1300, orientation="vertical"), 40))
-        # A later effective transition into wide clears the old-region override.
         self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 50))
-        # Returning through band and then narrow can automate again after a fresh dwell.
         self.assertIsNone(policy.observe(obs(width=1300, orientation="vertical"), 60))
         self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 70))
         request = policy.observe(obs(width=1000, orientation="vertical"), 170)
@@ -145,6 +206,13 @@ class ArbitrationPolicyTests(unittest.TestCase):
         policy.observe(obs(width=1500, orientation="horizontal"), 10)
         self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 50))
         self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 500))
+
+    def test_current_verification_mismatch_owns_manual_override_only_for_request_region(self):
+        policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=0, min_switch_interval_ms=0))
+        request = policy.observe(obs(width=1500, orientation="horizontal"), 0)
+        policy.verify(request, "horizontal", 10)
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 20))
+        self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 500))
 
     def test_same_token_with_new_epoch_is_new_scope_lifetime(self):
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=False, decision_dwell_ms=100))
@@ -177,19 +245,12 @@ class ArbitrationPolicyTests(unittest.TestCase):
         self.assertTrue(accepted, error)
         self.assertIsNone(policy.observe(obs(width=1500), 1000))
 
-    def test_invalid_or_unknown_observation_cancels_pending(self):
+    def test_invalid_or_unknown_observation_without_active_candidate_is_noop(self):
         policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100))
         policy.observe(obs(width=1300), 0)
-        policy.observe(obs(width=1500), 10)
         self.assertIsNone(policy.observe(obs(width=math.nan), 20))
-        self.assertIsNone(policy.observe(obs(width=1500), 200))
-
-    def test_lock_cancels_pending_and_emits_nothing_while_locked(self):
-        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100))
-        policy.observe(obs(width=1300), 0)
-        policy.observe(obs(width=1500), 10)
-        self.assertIsNone(policy.observe(obs(width=1500, locked=True), 50))
-        self.assertIsNone(policy.observe(obs(width=1500), 1000))
+        self.assertIsNone(policy.observe(obs(width=1300), 200))
+        self.assertIsNone(policy.observe(obs(width=1300), 1000))
 
     def test_monotonic_time_rejects_clock_reversal(self):
         policy = ArbitrationPolicy(PolicyConfig())
@@ -197,14 +258,16 @@ class ArbitrationPolicyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             policy.observe(obs(), 99)
 
-    def test_suspend_resume_invalidates_pending_deadline(self):
-        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100))
+    def test_suspend_resume_interrupted_candidate_requires_fresh_full_dwell(self):
+        policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
         policy.observe(obs(width=1300), 0)
         policy.observe(obs(width=1500), 10)
         policy.suspend(50)
         policy.resume(1000)
         self.assertIsNone(policy.observe(obs(width=1500), 1010))
-        self.assertIsNone(policy.observe(obs(width=1500), 2000))
+        self.assertIsNone(policy.observe(obs(width=1500), 1109))
+        request = policy.observe(obs(width=1500), 1110)
+        self.assertEqual("vertical", request.orientation)
 
 
 if __name__ == "__main__":

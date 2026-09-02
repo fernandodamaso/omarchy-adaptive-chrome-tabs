@@ -69,6 +69,43 @@ class FakeAdapterTimingTests(unittest.TestCase):
         self.assertEqual(2, len(sink.requests))
         self.assertEqual("horizontal", sink.requests[-1].orientation)
 
+    def test_delayed_completion_from_old_region_cannot_suppress_fresh_dwell(self):
+        clock = FakeClock()
+        policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=100, min_switch_interval_ms=0))
+
+        policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
+        clock.advance(100)
+        old_request = policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
+
+        clock.advance(10)
+        self.assertIsNone(policy.observe(obs("browser", 1000, "horizontal"), clock.now_ms))
+
+        clock.advance(90)
+        policy.verify(old_request, "vertical", clock.now_ms)
+
+        clock.advance(1)
+        self.assertIsNone(policy.observe(obs("browser", 1000, "vertical"), clock.now_ms))
+        clock.advance(100)
+        correction = policy.observe(obs("browser", 1000, "vertical"), clock.now_ms)
+        self.assertIsNotNone(correction)
+        self.assertEqual("horizontal", correction.orientation)
+
+    def test_stale_verification_mismatch_does_not_assign_override_to_new_region(self):
+        clock = FakeClock()
+        policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=100, min_switch_interval_ms=0))
+
+        policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
+        clock.advance(100)
+        old_request = policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
+
+        clock.advance(10)
+        policy.observe(obs("browser", 1000, "horizontal"), clock.now_ms)
+        clock.advance(10)
+        policy.verify(old_request, "horizontal", clock.now_ms)
+
+        state = policy._scopes[("scope-a", "epoch-1")]
+        self.assertIsNone(state.manual_override_region)
+
 
 if __name__ == "__main__":
     unittest.main()

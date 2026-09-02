@@ -46,8 +46,37 @@ class EligibleWindowClassifierTests(unittest.TestCase):
         self.assertEqual("ineligible", result.status)
         self.assertEqual("app-id-not-allowlisted", result.reason)
 
+    def test_non_stable_metadata_fails_default_channel_boundary_even_with_allowlisted_app_and_package(self):
+        for channel in ("beta", "dev", "canary"):
+            with self.subTest(channel=channel):
+                result = classify_window(observation(
+                    appId="google-chrome",
+                    initialAppId="google-chrome",
+                    browserChannel=channel,
+                    browserChannelQualified=True,
+                    package={"source": "native", "qualified": True},
+                ))
+                self.assertEqual("ineligible", result.status)
+                self.assertEqual("browser-channel-not-allowlisted", result.reason)
+
+    def test_unknown_channel_is_ambiguous_even_when_app_and_package_are_allowlisted(self):
+        result = classify_window(observation(browserChannel="unknown"))
+        self.assertEqual("ambiguous", result.status)
+        self.assertEqual("browser-channel-unqualified", result.reason)
+
     def test_explicit_non_controlling_surface_is_ineligible(self):
-        for surface_kind in ("pwa", "devtools", "extension-popup", "dialog", "pip", "first-run", "crash-recovery", "update-bubble"):
+        for surface_kind in (
+            "pwa",
+            "devtools",
+            "extension-popup",
+            "dialog",
+            "file-picker",
+            "auth-dialog",
+            "pip",
+            "first-run",
+            "crash-recovery",
+            "update-bubble",
+        ):
             with self.subTest(surface_kind=surface_kind):
                 result = classify_window(observation(surfaceKind=surface_kind))
                 self.assertEqual("ineligible", result.status)
@@ -89,7 +118,7 @@ class EligibleWindowClassifierTests(unittest.TestCase):
                 result = classify_window(observation(geometry=geometry))
                 self.assertEqual("ambiguous", result.status)
 
-    def test_beta_dev_canary_are_not_default_allowlist(self):
+    def test_non_allowlisted_channel_specific_app_ids_remain_ineligible(self):
         for app_id in ("google-chrome-beta", "google-chrome-unstable", "chromium-dev"):
             with self.subTest(app_id=app_id):
                 result = classify_window(observation(appId=app_id, initialAppId=app_id))
