@@ -76,8 +76,8 @@ Allowed values are fixed by FDM-821:
 - `stale-target`: target identity, process lifetime, focus, executable, or generation no longer matches. No mutation occurred after staleness was detected.
 - `timeout`: deterministic deadline expired; owned descendants/session/UI were cleaned up.
 - `conflict`: another request or observed user/browser change made the preflight state invalid, or post-set verification observed a conflicting final state. No compensating second write is made.
-- `consent-required`: mutation may be profile-syncable or sync impact is unknown and explicit opt-in is absent.
-- `policy-controlled`: effective preference is controlled by policy/supervision and is not retried as transient failure.
+- `consent-required`: a real mutation would affect a profile-syncable preference or a preference whose sync impact is unknown, and explicit opt-in is absent. A verified already-desired no-op never returns this status.
+- `policy-controlled`: a real mutation would target an effective preference controlled by policy/supervision and is not retried as transient failure.
 - `error`: bounded internal failure not represented by a more specific status.
 
 ### `orientation`
@@ -127,7 +127,7 @@ Prefer the shortest lifetime that still meets the product's same-profile associa
 - `managed`
 - `unknown`
 
-A managed effective preference must produce `status=policy-controlled` for `set`. A mechanism that cannot distinguish management from ordinary verification failure cannot be promoted to production.
+A managed effective preference blocks an actual mutation and must produce `status=policy-controlled` once a mismatch is known. If the effective orientation is already the requested orientation, `set` is a verified no-op and may return `ok(changed=false, verified=true)` while reporting `preferenceControl=managed` because no controlled value is being changed. A mechanism that cannot distinguish management from ordinary verification failure cannot be promoted to production.
 
 ### `syncImpact`
 
@@ -135,7 +135,7 @@ A managed effective preference must produce `status=policy-controlled` for `set`
 - `profile-syncable`
 - `unknown`
 
-For `profile-syncable` or `unknown`, `set` is default-deny and returns `consent-required` unless the request carries the documented explicit opt-in.
+Consent is a **mutation gate**, not a read gate. For `profile-syncable` or `unknown`, `set` requires explicit opt-in only after a trustworthy current-state read proves that the desired orientation differs and immediately before the qualified mutation. If the current orientation already equals the desired orientation, `set` returns the required verified idempotent no-op without consent.
 
 ### `accessibilityRequirement`
 
@@ -152,7 +152,7 @@ These two optional contract extensions make idempotence observable:
 
 - `changed=false`, `verified=true` when `set` finds the desired orientation already active.
 - `changed=true`, `verified=true` when exactly one desired-state mutation was required and postflight succeeded.
-- `changed=null` and/or `verified=false` for unsupported/error states where no trustworthy conclusion is available.
+- `changed=null` and/or `verified=false` for unsupported/error/conflict states where no trustworthy successful final-state conclusion is available.
 
 ## Reason codes
 
@@ -235,13 +235,13 @@ serialize operation
 preflight target identity + focus + generation
 resolve exact preference scope
 classify control + sync impact
-if managed -> policy-controlled
-if syncable/unknown and consent absent -> consent-required
 read effective orientation
 if unknown -> unsupported
-if orientation == desired -> ok(changed=false, verified=true)
+if orientation == desired -> ok(reason=already-desired, changed=false, verified=true)
+if managed -> policy-controlled
 snapshot allowed collateral sentinels
 revalidate target identity
+if syncable/unknown and consent absent -> consent-required
 invoke exactly one qualified state-specific semantic action
 revalidate target identity
 read effective final orientation
@@ -252,6 +252,10 @@ if collateral changed beyond approved orientation effect -> error/conflict and c
 cleanup all transient UI/session/process state
 return ok(changed=true, verified=true)
 ```
+
+The consent check is deliberately after readback and final pre-mutation identity revalidation. An already-correct target never needs mutation consent; a mismatched syncable/unknown-impact target cannot mutate without it.
+
+`contract-set-model.py` is a pure, side-effect-free reference model for this ordering. `test-contract-set-model.py` covers verified no-op without consent, consent-required mismatch, managed mismatch, mutation eligibility, postflight mismatch, and successful verification. Those files are test artifacts only and are not a production adapter.
 
 No second mutation is performed to "repair" a mismatch inside the same request.
 
@@ -318,4 +322,4 @@ Never log:
 
 ## Promotion rule
 
-This contract becomes a production interface only after `local-qualification.md` proves one mechanism satisfies every FDM-821 GO criterion. Otherwise the final implementation is intentionally absent and FDM-821 records NO-GO.
+This contract becomes a production interface only after `local-qualification.md` proves one mechanism satisfies every FDM-821 GO criterion. A deterministic early hard-gate failure may produce an honest NO-GO without executing mutation-dependent matrix rows, provided the runbook's early-exit rule is followed and the smallest reproducible sanitized failure is recorded. Otherwise the final implementation is intentionally absent.

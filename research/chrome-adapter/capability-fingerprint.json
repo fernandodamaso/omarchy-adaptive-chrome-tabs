@@ -1,7 +1,9 @@
 {
   "schemaVersion": 1,
   "observedAt": "2026-09-02",
-  "researchScope": "remote-upstream-plus-target-omarchy-read-only",
+  "researchScope": "remote-upstream-plus-recorded-target-omarchy-read-only",
+  "qualificationMode": "no-go-early-hard-gate-exit",
+  "localEvidenceReproducedByCurrentRemoteChange": false,
   "publicStable": {
     "browserFamily": "chrome",
     "platform": "linux",
@@ -27,7 +29,7 @@
     "documentedExternalProfileScopeIdentity": false
   },
   "remainingCandidate": "linux-at-spi-semantic-native-browser-ui",
-  "candidateState": "target-machine-atspi-focused-state-unavailable",
+  "candidateState": "recorded-local-atspi-focused-target-hard-gate-failed",
   "remoteDecision": "no-go",
   "targetMachine": {
     "omarchyVersion": "4.0.2-1",
@@ -39,10 +41,11 @@
     "windowBackend": "wayland",
     "atspiApplicationMatched": true,
     "atspiFocusedNativeNode": false,
-    "atspiStateSpecificOrientationAction": false
+    "atspiStateSpecificOrientationActionObservedInReadOnlyTopology": false
   },
-  "finalDecisionReason": "AT-SPI exposed Chrome application/frame objects but no focused native node or state-specific orientation action; exact target ownership and effective-state readback cannot be proven without rejected fallbacks.",
+  "finalDecisionReason": "Recorded local read-only evidence exposed Chrome application/frame objects but no focused native top-level target; exact target ownership therefore fails closed before state readback or mutation. State-specific orientation action was also not observed in the read-only topology. The current remote remediation did not rerun the target machine.",
   "hardUnknowns": [
+    "native feature availability on the recorded target package after the early exit",
     "focused-window-to-profile-scope mapping",
     "privacy-preserving same-profile scope token",
     "different-profile token separation within one browser process",
@@ -61,6 +64,11 @@
     "normal extension API gains supported native orientation access",
     "documented Linux desktop interface exposes focused-window profile scope safely",
     "AT-SPI exposes a stable privacy-safe profile-scope identifier",
+    "AT-SPI can deterministically bind the compositor-focused browser window to one focused top-level native accessibility target",
+    "AT-SPI exposes trustworthy state-specific effective-orientation readback for the focused target",
+    "AT-SPI exposes a qualified state-specific orientation action for the focused target",
+    "target Chrome or Chromium browser/package version changes",
+    "target package form, wrapper resolution, sandbox form, or executable fingerprint changes",
     "orientation preference scope changes",
     "sync semantics change",
     "first-enable collateral semantics change"

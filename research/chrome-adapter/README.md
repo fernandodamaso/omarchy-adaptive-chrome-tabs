@@ -4,21 +4,27 @@ This lane determines whether Chrome/Chromium's native tab-strip orientation can 
 
 ## Current state
 
-**Local qualification is complete — NO-GO.** The sanitized target-machine
-result is recorded in `report.md`; no orientation write or production adapter
-was used.
+**NO-GO — early hard-gate exit on the recorded local AT-SPI observation.** This is not a claim that the full mutation/profile matrix was executed.
 
-Public Chrome/Chromium, extension, and CDP interfaces do not provide the required exact live orientation adapter. On the real Omarchy machine, the remaining semantic Linux accessibility candidate exposed no focused native window state or state-specific orientation action, so the production gate is NO-GO.
+The pre-existing sanitized Omarchy observation matched the Chrome AT-SPI application but exposed no focused top-level native frame and no state-specific orientation action in the read-only topology. Exact focused-target ownership is a mandatory prerequisite for both `get` and `set`, so the candidate fails closed before any orientation mutation is justified.
+
+This remote review-fix change does **not** have access to the target Omarchy session and did not rerun or extend that local evidence. It adds a deterministic privacy-safe read-only probe and a structured transcription of the already-recorded observation. Under `local-qualification.md`'s explicit early-exit rule, feature/manual-switch and mutation-dependent rows are marked `SKIPPED — prerequisite hard gate failed` rather than being presented as completed tests.
+
+Public Chrome/Chromium, extension, and CDP interfaces still do not provide the required exact live orientation adapter. Re-evaluate the AT-SPI candidate only when the capability fingerprint materially changes or the target machine reruns the probe and no longer reproduces the focused-target failure.
 
 Do not treat the presence of a state-specific Chrome menu action as GO by itself. Profile-scope identity/token separation, policy/control classification, idempotent verification, collateral-state preservation, accessibility scope, stale-target handling, and deterministic cleanup are all hard gates.
 
 ## Artifacts
 
-- `report.md` — pinned upstream findings, rejected mechanisms, remaining candidate, and final decision rules.
+- `report.md` — pinned upstream findings, rejected mechanisms, recorded local early-exit evidence, and final decision rules.
 - `adapter-contract.md` — proposed `probe/get/set` production boundary and failure semantics.
 - `adapter-result.schema.json` — machine-readable result schema required by the contract.
-- `capability-fingerprint.json` — source-side fingerprint and upstream changes that warrant re-evaluation.
-- `local-qualification.md` — deterministic target Omarchy matrix that must be executed before the verdict.
+- `contract-set-model.py` — pure reference model for consent/idempotence/postflight ordering; no browser side effects.
+- `test-contract-set-model.py` — pure tests for no-op, consent, mismatch, managed-policy, and verification behavior.
+- `probe-atspi.py` — deterministic read-only AT-SPI topology probe that prunes web/document content and never emits accessible names.
+- `evidence/atspi-readonly-2026-09-02.json` — structured transcription of the pre-existing sanitized local observation; explicitly not rerun by this remote change.
+- `capability-fingerprint.json` — source/target fingerprint and capability changes that warrant re-evaluation.
+- `local-qualification.md` — deterministic target Omarchy matrix plus the normative early hard-gate exit rule.
 
 ## Branch contract
 
@@ -32,7 +38,7 @@ Do not rebase this research lane onto FDM-822 or any implementation branch. FDM-
 
 ## Privacy/security
 
-Remote work may inspect upstream source, prepare safe probes, pure tests, schemas, and a deterministic local runbook. Only the target Omarchy machine may claim live browser/accessibility behavior or a GO verdict.
+Remote work may inspect upstream source, prepare safe probes, pure tests, schemas, and a deterministic local runbook. Only the target Omarchy machine may claim new live browser/accessibility behavior or a GO verdict.
 
 Do not commit raw browser/profile data. Raw local evidence belongs under ignored `research/chrome-adapter/raw/`. Sanitized evidence must not contain browser titles, URLs, profile names/paths, account data, command lines, raw accessibility trees, webpage content, or preference-file contents.
 

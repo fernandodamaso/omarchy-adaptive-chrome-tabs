@@ -1,6 +1,6 @@
 # FDM-821 — Chrome orientation adapter feasibility report
 
-**Status:** LOCAL QUALIFICATION COMPLETE — NO-GO
+**Status:** NO-GO — EARLY HARD-GATE EXIT; LOCAL MUTATION MATRIX SKIPPED  
 **Research branch:** `research/fdm-821-chrome-orientation-adapter`  
 **Pinned branch base:** `444b31be1d12ea25729c4948a0428c5ebb72179a`  
 **Remote research date:** 2026-09-02
@@ -9,9 +9,13 @@
 
 No **GO — production adapter** decision is justified by remote source inspection alone.
 
-The required investigation order leaves exactly one production candidate that still warrants local qualification: semantic Linux accessibility automation against Chrome's native browser UI. Public browser/extension/automation interfaces do not provide an exact read/set vertical-tab API for the user's existing profile, and the rejected fallback mechanisms in FDM-821 are not reconsidered here.
+The required investigation order leaves exactly one production candidate that warrants target-machine qualification: semantic Linux accessibility automation against Chrome's native browser UI. Public browser/extension/automation interfaces do not provide an exact read/set vertical-tab API for the user's existing profile, and the rejected fallback mechanisms in FDM-821 are not reconsidered here.
 
-The target Omarchy qualification below records **NO-GO**. The accessibility candidate failed the focused-window/state-readback gate before any orientation write was considered. Do not proceed to remote debugging, live preference-file editing, input injection, internal commands, or restarts as fallback work.
+The pre-existing sanitized target Omarchy observation records a decisive read-only hard-gate failure: the Chrome AT-SPI application was matched, but no focused top-level native frame could be proven. Exact focused-target ownership is mandatory before either effective-state readback or mutation. `local-qualification.md` now makes that early-exit behavior normative: once this independent hard gate fails, feature/manual-switch and mutation/profile matrix rows are marked `SKIPPED — prerequisite hard gate failed` rather than being described as completed tests.
+
+This remote review-remediation change did **not** have access to the target Omarchy session and did not rerun that observation. It adds `probe-atspi.py` so the failure can be reproduced deterministically and `evidence/atspi-readonly-2026-09-02.json` as a structured transcription of the already-recorded sanitized observation. No new local evidence is fabricated here.
+
+The recorded result therefore remains **NO-GO — production adapter** by early hard-gate exit. Do not proceed to remote debugging, live preference-file editing, input injection, internal commands, or restarts as fallback work.
 
 ## Pinned public baseline
 
@@ -79,7 +83,7 @@ Linux desktop launchers, `.desktop` actions, D-Bus surfaces discovered during th
 
 ### 3. Semantic Linux accessibility automation
 
-**Result: only remaining candidate; local qualification required.**
+**Result: only remaining candidate; target-machine qualification required.**
 
 The pinned Chrome UI has a promising semantic property: the app menu renders a different menu item according to the actual controller state. When vertical tabs are displayed it presents the state-specific action corresponding to switching back to horizontal tabs; otherwise it presents the action corresponding to switching to vertical tabs. Chromium's own UI tests also exercise state-specific menu behavior.
 
@@ -139,6 +143,8 @@ If the candidate exposes only a generic toggle without trustworthy current-state
 7. return `conflict` with the observed final orientation when a user/sync/concurrent change is detected;
 8. never perform a compensating second write in the same operation.
 
+Consent is checked only after a trustworthy read proves a real mismatch and immediately before an allowed syncable/unknown-impact mutation. A verified already-desired no-op requires no consent. The ordering is modeled and tested by `contract-set-model.py` and `test-contract-set-model.py`.
+
 ### Collateral mutation: first-enable metadata
 
 Chrome 152's `VerticalTabStripStateController::OnModeChanged()` writes `vertical_tabs.enabled_first_time=true` the first time vertical tabs are enabled. This is separate from `vertical_tabs.enabled` and is documented in source as metrics-only state.
@@ -161,7 +167,7 @@ Chrome source keeps these states separate, but source separation is not a substi
 
 For upstream Chrome `152.0.7977.75`, source classifies `vertical_tabs.enabled` as no longer syncable. The adapter fingerprint may therefore report `syncImpact=local-only` only for the exact qualified build/package whose behavior matches that source.
 
-Other Chromium builds/versions must be measured independently. If syncability is `profile-syncable` or `unknown`, mutation is default-deny and returns `consent-required` without explicit service opt-in.
+Other Chromium builds/versions must be measured independently. If syncability is `profile-syncable` or `unknown`, a real mutation is default-deny and returns `consent-required` without explicit service opt-in. Readback and an already-desired verified no-op do not require consent.
 
 The accessibility candidate must also distinguish policy/supervision control. If it cannot distinguish `policy-controlled` from a normal verification mismatch without opening privileged/settings pages, scraping sensitive data, or using unsupported internals, it fails the contract.
 
@@ -198,7 +204,9 @@ The following are closed by the issue contract and were not treated as fallback 
 
 ## Required local evidence before final decision
 
-`local-qualification.md` is normative for the remaining work. At minimum, the final report must append sanitized evidence for:
+`local-qualification.md` is normative. A **GO** requires the complete applicable matrix. A **NO-GO** may terminate early only when a deterministic safe hard gate independently fails and the runbook's early-exit rule is followed. In an early exit, unexecuted rows are explicitly `SKIPPED — prerequisite hard gate failed`; they are not silently promoted to passing evidence.
+
+If the current focused-target failure no longer reproduces, qualification resumes and the final report must append sanitized evidence for:
 
 - exact Google Chrome Stable package/version/executable/wrapper/sandbox/native window mode;
 - Chromium package when available;
@@ -221,26 +229,29 @@ Raw captures stay under ignored local paths and must never be committed. Commit 
 
 ## Final decision rule
 
-After the local matrix is complete, FDM-821 must end with exactly one of:
+FDM-821 must end with exactly one of:
 
 - **GO — production adapter**: every GO criterion is demonstrated on the explicitly pinned package/executable/accessibility form, with a finalized adapter protocol and capability fingerprint.
-- **NO-GO**: any required property cannot be demonstrated without using a rejected mechanism or weakening the acceptance contract.
+- **NO-GO**: any required property cannot be demonstrated without using a rejected mechanism or weakening the acceptance contract. A deterministic independent hard-gate failure may end the candidate before mutation-dependent rows are executed.
 
 A partial accessibility success is not GO. In particular, being able to click a state-specific menu item is insufficient if profile scope, policy classification, target identity, cleanup, or collateral preservation remains ambiguous.
 
 ## Capability re-evaluation triggers
 
-Re-open public-interface research only if one of these changes:
+Re-open public-interface or AT-SPI research if one of these changes:
 
 - Chrome/Chromium publishes a supported exact vertical-tab read/set command or public automation API;
 - CDP adds a vertical-tab browser command usable without violating the default-profile debugging constraints;
 - a normal extension API gains supported access to native tab-strip orientation;
 - Chrome publishes a stable Linux desktop/DBus interface that identifies the focused window's owning profile scope without disclosing profile identity;
-- AT-SPI exposes a stable non-localized profile-scope identifier plus state-specific orientation actions with verified policy/control semantics;
+- AT-SPI gains a stable privacy-safe profile-scope identifier;
+- AT-SPI can deterministically bind the compositor-focused browser window to one focused top-level native accessibility target;
+- AT-SPI exposes trustworthy state-specific effective-orientation readback and a qualified state-specific orientation action;
+- the target browser/package version, wrapper/package form, sandbox form, or executable fingerprint changes;
 - Chrome changes orientation from profile scope to window/process scope;
 - Chrome changes the sync or first-enable collateral semantics relevant to the acceptance contract.
 
-The machine-readable source-side fingerprint is in `capability-fingerprint.json`.
+The machine-readable source/target fingerprint is in `capability-fingerprint.json`.
 
 ## Primary upstream evidence
 
@@ -255,7 +266,9 @@ The machine-readable source-side fingerprint is in `capability-fingerprint.json`
 - Chrome 152 CDP Browser domain: <https://github.com/chromium/chromium/blob/152.0.7977.75/third_party/blink/public/devtools_protocol/domains/Browser.pdl>
 - Chrome remote-debugging security change: <https://developer.chrome.com/blog/remote-debugging-port>
 
-## Target Omarchy qualification — 2026-09-02
+## Target Omarchy qualification — recorded 2026-09-02
+
+The following is **pre-existing sanitized local evidence** already present in this branch before the review-remediation commit. The current remote change did not rerun the Omarchy session.
 
 ### Pinned environment
 
@@ -270,43 +283,35 @@ Chromium executable fingerprint: sha256:78f94ee05d5d6fd1bd8239b9700d3cf54d540911
 AT-SPI: at-spi2-core 2.60.6-1; python-gobject 3.56.3-1; user accessibility bus present
 ```
 
-The installed Chrome build is `.64`, not the remotely researched `.75` source
-baseline. The source-side sync classification is therefore not promoted to a
-runtime claim; any mutation would require `syncImpact=unknown` and explicit
-consent.
+The installed Chrome build is `.64`, not the remotely researched `.75` source baseline. The source-side sync classification is therefore not promoted to a runtime claim; any real mutation would require `syncImpact=unknown` and explicit consent after readback proves a mismatch.
 
-### Read-only accessibility result
+### Reproducible read-only accessibility result
 
-The active Chrome compositor identity was allowlisted and matched one AT-SPI
-application. Its native accessibility topology exposed three frame objects and
-menu-capable actions, but neither the application nor frames carried the
-focused state. No state-specific horizontal/vertical action was exposed in the
-inspected topology. Web/document subtrees were not traversed, no menu was
-opened, and no orientation action was invoked.
+The recorded observation says the active Chrome compositor identity was allowlisted and matched one AT-SPI application. Its native accessibility topology exposed three frame objects and native action capability, but neither the application nor any top-level frame carried the focused state. No state-specific horizontal/vertical action was observed in the read-only topology. Web/document subtrees were not traversed, no menu was opened, and no orientation action was invoked.
 
-This means the candidate cannot safely prove focused-window ownership or derive
-the current effective orientation. It fails the `get(target)` and exact
-focused-target hard gates before `set` is even considered.
+The exact deterministic rerun is defined in `local-qualification.md` and implemented by `probe-atspi.py`. The committed structured transcription is `evidence/atspi-readonly-2026-09-02.json`; it is explicitly marked `reproducedByCurrentRemoteChange=false` so this remote remediation cannot be mistaken for new local evidence.
 
-### Required matrix status
+This means the candidate cannot safely prove focused-window ownership. That independently fails the `get(target)`/`set(target)` focused-target hard gate before state-specific menu readback or mutation can be considered.
+
+### Matrix status after early hard-gate exit
 
 ```text
-native vertical-tabs feature availability: UNKNOWN (no safe semantic readback)
-initial orientation: UNKNOWN
-manual live switch: NOT TESTED (would require an unqualified write)
-same-profile/different-profile scope tokens: NOT PROVEN
-same-process multi-profile targeting: NOT PROVEN
-managed/supervised/guest/incognito: unavailable; fail closed
-stale target/PID reuse/helper/spoof: contract defined; live adapter absent
-idempotent set/verification/conflict/cleanup: NOT TESTED; no adapter exists
-collateral preference preservation: NOT TESTED; no orientation write performed
+AT-SPI application PID match: RECORDED PASS (pre-existing sanitized local evidence)
+focused top-level native target: RECORDED FAIL (no focused application/frame)
+state-specific orientation action in read-only topology: RECORDED NOT OBSERVED
+native vertical-tabs feature availability: SKIPPED — independent focused-target hard gate failed first
+initial orientation: SKIPPED — prerequisite hard gate failed
+manual live switch: SKIPPED — no mutation performed after decisive read-only failure
+same-profile/different-profile scope tokens: SKIPPED — candidate already NO-GO
+same-process multi-profile targeting: SKIPPED — candidate already NO-GO
+managed/supervised/guest/incognito: SKIPPED — candidate already NO-GO
+stale target/PID reuse/helper/spoof live cases: SKIPPED — production candidate absent after hard-gate failure
+idempotent set/verification/conflict/cleanup: SKIPPED — no mutation candidate after hard-gate failure
+collateral preference preservation: SKIPPED — no orientation write performed
 ```
 
 ### Final decision
 
-**NO-GO — production adapter.** Public command, CDP, ordinary extension, and
-documented desktop mechanisms remain rejected as recorded above. The only
-remaining candidate, semantic AT-SPI, did not expose a privacy-safe focused
-window/state readback surface on the installed Chrome/Omarchy session. Proving
-the missing behavior would require a rejected fallback or an explicit future
-capability change; no Chrome profile orientation was changed during this run.
+**NO-GO — production adapter by early hard-gate exit.** Public command, CDP, ordinary extension, and documented desktop mechanisms remain rejected as recorded above. The only remaining candidate, semantic AT-SPI, could not prove the focused top-level native target on the recorded Chrome/Omarchy session. Exact target ownership is security/correctness-critical and cannot be approximated with PID/app class, titles, profile data, coordinates, or global input.
+
+No orientation write was required to establish that failure. The unexecuted feature/manual/mutation/profile rows are therefore **skipped**, not claimed as passing or completed measurements. If a future browser/package/executable/AT-SPI change makes the read-only focused-target probe pass, resume the local runbook from the earliest affected prerequisite and complete the remaining applicable matrix before any GO decision.
