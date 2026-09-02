@@ -4,23 +4,18 @@ Committed fixtures must be sanitized, minimal, deterministic, and attributable t
 
 ## Required metadata
 
-Each future fixture should document:
+Each fixture records its schema version, owning research issue, provenance, non-sensitive stack fingerprint status, and the retained fields required by its test.
 
-- fixture schema/version;
-- owning research issue;
-- sanitized browser/compositor version fingerprint when required;
-- capture command or procedure without secrets or personal paths;
-- which fields were retained and why.
+FDM-822 fixtures live under `tests/fixtures/fdm-822/`. `fixture-schema.json` is the checked contract. Current committed examples are explicitly synthetic and must not be described as live Hyprland/Chrome evidence.
 
 ## Sanitization
 
 Before commit:
 
-- replace browser titles and URLs with placeholders such as `<redacted-title>` and `<redacted-url>`;
-- remove usernames, home directories, profile names/paths, account identifiers, tokens, secrets, and unrelated command-line arguments;
-- remove extension IDs unless a test explicitly requires a synthetic placeholder;
-- preserve only fields required to test classification, geometry, lifecycle, or preference-scope behavior.
+- omit browser titles, URLs, document names, profile names/paths, account identifiers, tokens, secrets, PIDs, window addresses, and unrelated command lines;
+- omit workspace names and monitor serial/description data unless an approved future test proves a non-sensitive need;
+- preserve only fields required to test classification, geometry, lifecycle, or preference-scope behavior;
+- keep live/local captures under ignored `research/**/raw/` or `tests/fixtures/raw/` paths;
+- manually inspect any fixture promoted from local evidence.
 
-Raw captures belong in ignored `raw/` directories and must never be committed.
-
-The baseline CI intentionally rejects obvious URL/home-path/profile leakage in fixture files. Passing CI does not replace manual review.
+FDM-822's local sanitizer deliberately emits `geometry.unit=unverified` until the pinned-stack run proves the exact logical-width contract. Passing CI does not replace manual privacy review or local qualification.

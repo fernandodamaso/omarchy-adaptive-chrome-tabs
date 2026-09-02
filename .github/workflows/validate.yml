@@ -28,7 +28,10 @@ jobs:
             bin/README.md
             research/chrome-adapter/README.md
             research/geometry-arbitration/README.md
+            research/geometry-arbitration/LOCAL_RUNBOOK.md
+            research/geometry-arbitration/LOCAL_EVIDENCE_TEMPLATE.md
             tests/fixtures/README.md
+            tests/fixtures/fdm-822/fixture-schema.json
           )
           for path in "${required[@]}"; do
             test -f "$path" || { echo "missing required file: $path" >&2; exit 1; }
@@ -89,6 +92,13 @@ jobs:
           for script in "${scripts[@]}"; do
             bash -n "$script"
           done
+
+      - name: Run FDM-822 pure research tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_*.py'
+          python -m compileall -q research/geometry-arbitration tests
 
       - name: Guard committed fixtures against obvious private browser data
         shell: bash

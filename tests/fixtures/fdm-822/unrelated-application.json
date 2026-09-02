@@ -1,0 +1,40 @@
+{
+  "expectedClassification": "ineligible",
+  "fixtureId": "unrelated-application",
+  "issue": "FDM-822",
+  "notes": [
+    "Synthetic only; does not prove live compositor metadata or package identity."
+  ],
+  "observation": {
+    "active": true,
+    "appId": "com.example.editor",
+    "browserChannel": "unknown",
+    "displayMode": "native-wayland",
+    "fullscreen": false,
+    "geometry": {
+      "height": 900.0,
+      "sourceField": "hyprctl.clients.size[0]",
+      "unit": "logical",
+      "width": 1500.0
+    },
+    "immersive": false,
+    "initialAppId": "com.example.editor",
+    "kiosk": false,
+    "maximized": false,
+    "normalIdentityProven": true,
+    "package": {
+      "qualified": true,
+      "source": "native"
+    },
+    "privacyScopeProven": false,
+    "sessionLocked": false,
+    "surfaceKind": "normal-tabbed",
+    "surfaceRole": "application-toplevel"
+  },
+  "provenance": {
+    "capture": "hand-authored-policy-fixture",
+    "kind": "synthetic",
+    "stackFingerprint": "SYNTHETIC-NO-LIVE-VERSIONS"
+  },
+  "schemaVersion": 1
+}
