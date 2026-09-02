@@ -1,20 +1,17 @@
 # FDM-821 — target Omarchy qualification runbook
 
-This runbook completes the part of FDM-821 that a remote GitHub worker cannot truthfully perform. It tests the only remaining candidate: semantic Linux accessibility automation against the installed Chrome/Chromium native browser UI.
+This runbook defines the part of FDM-821 that a remote GitHub worker cannot truthfully perform. It tests the only remaining candidate: semantic Linux accessibility automation against the installed Chrome/Chromium native browser UI.
 
-A **GO** requires the complete applicable matrix. A **NO-GO** may stop early only when a deterministic, safe hard gate independently fails and no allowed mechanism can repair that prerequisite. Early exit is normative, not an excuse to relabel unexecuted work as passing.
+A remote worker may prepare safe probes, pure tests, schemas, and instructions, but only the target Omarchy session may create new live browser/accessibility evidence. Do not promote this research lane to a GO verdict until the complete required matrix is proven locally.
 
-When an early hard-gate exit is used:
+A reproducible hard-gate failure may establish **NO-GO for the production candidate before mutation-dependent phases are attempted**. That early stop does not make unexecuted prerequisites disappear. Use these row states consistently:
 
-1. record the smallest reproducible sanitized failure;
-2. record the exact package/version/executable/accessibility fingerprint already known at the failure point;
-3. mark every unexecuted dependent row as `SKIPPED — prerequisite hard gate failed` rather than `UNKNOWN`, `NOT TESTED`, or `PASS`;
-4. do not perform a manual orientation switch or any mutation merely to fill the remaining matrix;
-5. record the capability change that would require re-evaluation.
+- `PASS` / `FAIL` — locally executed and sanitized evidence retained;
+- `PENDING_LOCAL` — required evidence was not executed in the target session;
+- `SKIPPED_AFTER_HARD_GATE` — a dependent phase was not executed because an earlier candidate hard gate already failed;
+- `NOT_APPLICABLE` — only when the matrix explicitly allows it.
 
-A remote worker may add source research, probes, fixtures, pure tests, and runbook improvements, but may not claim that the target Omarchy session was rerun. Any committed historical local observation must say whether the current change reproduced it.
-
-Do not write a GO verdict until the full applicable matrix is complete. A NO-GO is valid either after the full matrix or after a documented independent early hard-gate failure under the rule above.
+If required local evidence remains `PENDING_LOCAL`, report **INCOMPLETE LOCAL QUALIFICATION — PRODUCTION ADAPTER NO-GO**, not “local qualification complete.” A NO-GO may remain decisive while the qualification record is incomplete.
 
 ## Safety rules
 
@@ -79,7 +76,7 @@ The exact package/wrapper/executable/sandbox/window-backend form is known well e
 
 ## Phase 2 — confirm native feature state
 
-Normally, without enabling flags or field trials, confirm that the installed normal browser offers native vertical tabs and can manually switch between horizontal and vertical layouts.
+Without enabling flags or field trials, confirm that the installed normal browser offers native vertical tabs and can manually switch between horizontal and vertical layouts.
 
 Record only:
 
@@ -88,21 +85,11 @@ Record only:
 - manual switch live without browser restart: yes/no;
 - feature unavailable due rollout/build: reason if known.
 
+The manual user switch in this phase is a qualification observation, not a production-adapter write. It is required local evidence for a qualification-complete record unless the feature itself is unavailable.
+
 If the native feature is unavailable in the target package, record **NO-GO for that package/version**. Do not enable experimental flags to continue.
 
-### Early-exit exception before manual switching
-
-To minimize browser mutations, Phase 3's deterministic read-only focused-target probe may be run before the manual switch portion of this phase. If that probe independently proves that the compositor-focused browser window cannot be bound to one focused top-level native AT-SPI target, the production candidate already fails a mandatory security/correctness prerequisite.
-
-In that case:
-
-```text
-feature availability: SKIPPED — independent focused-target hard gate failed first
-initial orientation: SKIPPED — prerequisite hard gate failed
-manual live switch: SKIPPED — no mutation required after decisive read-only failure
-```
-
-Do not perform a manual switch merely to convert those rows into measurements. If a future capability change makes the focused-target probe pass, return here and complete Phase 2 before any orientation action probe.
+The Phase 3 read-only probe may be run first when minimizing interaction is useful. If it fails its focused-target hard gate before this phase is measured, these Phase 2 rows remain `PENDING_LOCAL`; they are not retroactively proved or skipped by a later-phase failure. The production candidate can still remain NO-GO, but the local qualification record is incomplete.
 
 ## Phase 3 — establish accessibility prerequisites
 
@@ -130,36 +117,18 @@ python3 research/chrome-adapter/probe-atspi.py \
 python3 -m json.tool research/chrome-adapter/raw/atspi-probe.json >/dev/null
 ```
 
-For Chromium use `--browser-family chromium` after separately validating the package/executable identity.
+For Chromium use `--browser-family chromium` only after separately validating the package/executable identity.
 
 The `hyprctl` JSON is piped directly through `jq`; do not redirect or commit the full active-window object because it can contain a title. The probe receives only the numeric PID. Its committed code:
 
 - matches AT-SPI applications by that already-validated PID;
 - prunes roles containing `document`, `web`, or `embedded` before recursion;
-- bounds traversal depth/node count;
-- never serializes accessible names/text;
-- reads a native accessible name only in memory to classify a possible orientation-action candidate;
-- emits only safe role strings, boolean focused/enabled/action predicates, counts, and probe-behavior booleans;
+- bounds traversal depth and node count;
+- never emits accessible names, descriptions, text, URLs, profile data, or raw trees;
+- emits safe role names plus boolean focused/enabled/action-capability predicates and bounded aggregate booleans/counts;
 - never opens a menu and never invokes an orientation action.
 
-The sanitized shape includes these decisive fields:
-
-```json
-{
-  "applicationMatched": true,
-  "topLevelFrameCount": 3,
-  "anyTopLevelFocused": false,
-  "anyActionCapability": true,
-  "stateSpecificOrientationActionObserved": false,
-  "menuOpenAttempted": false,
-  "orientationMutationAttempted": false,
-  "webDocumentSubtreesPruned": true
-}
-```
-
-That block is a **shape/example**, not target evidence. Commit a real rerun only after reviewing it for privacy. Never copy raw accessibility names or a full accessibility dump into evidence.
-
-The current branch also contains `evidence/atspi-readonly-2026-09-02.json`, a structured transcription of the pre-existing sanitized local observation. It explicitly says `reproducedByCurrentRemoteChange=false`; a remote review fix must not change that flag to true.
+The current branch contains `evidence/atspi-readonly-2026-09-02.json`, a structured transcription of the pre-existing sanitized local observation. It explicitly says `reproducedByCurrentRemoteChange=false`; a remote review fix must not change that flag to true.
 
 ### Read-only topology pass/stop condition
 
@@ -170,9 +139,16 @@ The native browser UI must expose enough semantic structure to identify:
 - the browser-menu button or equivalent semantic entry point;
 - menu/menu-item roles and supported semantic actions.
 
-If exactly one validated application is matched but **no top-level native frame is focused**, stop the AT-SPI candidate immediately with an early hard-gate NO-GO. Exact focused-window ownership cannot be proven, so opening a menu or attempting orientation read/set would target ambiguously. Mark Phases 2 manual-switch remainder and 4-12 mutation/profile-dependent rows `SKIPPED — prerequisite hard gate failed` as applicable.
+If exactly one validated application is matched but **no top-level native frame is focused**, stop the AT-SPI candidate immediately with a hard-gate NO-GO. Exact focused-window ownership cannot be proven, so opening a menu or attempting orientation read/set would target ambiguously.
 
-If focused-target identity passes, continue. The probe output must still contain only role names, boolean focused/enabled/action capability, and safe aggregate predicates. Do **not** output accessible names/text because they can contain profile names, titles, URLs, or account data.
+At that point:
+
+- keep any earlier unmeasured Phase 1–2 rows `PENDING_LOCAL`;
+- mark dependent Phases 4–10 `SKIPPED_AFTER_HARD_GATE`;
+- preserve the production **NO-GO** decision;
+- report local qualification as incomplete while required pending rows remain.
+
+If focused-target identity passes, continue. Committed probe output must contain only safe roles, boolean focused/enabled/action capability, and sanitized aggregate predicates. Do **not** commit accessible names/text because they can contain profile names, titles, URLs, or account data.
 
 ### Accessibility requirement classification
 
@@ -187,7 +163,7 @@ If a production implementation would require enabling broad accessibility withou
 
 ## Phase 4 — prove state-specific semantic orientation readback
 
-Only run this phase if focused-target identity passed.
+Run this phase only after Phase 3 proves the exact focused top-level target.
 
 Open the browser app/system/tab menu **semantically**, not by coordinates or global shortcut injection.
 
@@ -226,29 +202,24 @@ For each desired state:
 
 1. capture sanitized target identity and current effective orientation;
 2. call `set(desired)`;
-3. if already desired, prove no orientation action was invoked;
-4. if different, prove exactly one state-specific semantic action was invoked;
-5. immediately revalidate focus/PID/start-time/executable/generation;
-6. read the effective final orientation independently;
-7. close any transient menu/session;
-8. record latency and focus/UI disturbance.
+3. if already desired, prove no orientation action was invoked and return the verified no-op without sync consent;
+4. if different, revalidate mutable target/control/sync state;
+5. if the preference is managed, return `policy-controlled` with zero mutation;
+6. if sync impact is `profile-syncable` or `unknown`, require consent immediately before mutation;
+7. if mutation is allowed, prove exactly one state-specific semantic action was invoked;
+8. immediately revalidate focus/PID/start-time/executable/generation;
+9. read the effective final orientation independently;
+10. close any transient menu/session and record latency/focus/UI disturbance.
 
 Expected results:
 
-| Pre-state | Desired | Mutation count | Result |
-| --- | --- | ---: | --- |
-| horizontal | horizontal | 0 | `ok`, `changed=false`, verified horizontal |
-| vertical | vertical | 0 | `ok`, `changed=false`, verified vertical |
-| horizontal | vertical | 1 | `ok`, `changed=true`, verified vertical |
-| vertical | horizontal | 1 | `ok`, `changed=true`, verified horizontal |
-
-Consent ordering is part of this proof:
-
-1. read the effective current orientation first;
-2. if already desired, return the verified no-op with zero mutation even when `syncImpact` is `profile-syncable` or `unknown` and consent is absent;
-3. if the state differs and the preference is managed, return `policy-controlled` with zero mutation;
-4. if the state differs and `syncImpact` is `profile-syncable` or `unknown`, require consent immediately before the actual mutation;
-5. after one mutation, independently verify the final state.
+| Pre-state | Desired | Sync impact | Consent | Mutation count | Result |
+| --- | --- | --- | --- | ---: | --- |
+| horizontal | horizontal | unknown | no | 0 | `ok`, `changed=false`, verified horizontal |
+| vertical | vertical | profile-syncable | no | 0 | `ok`, `changed=false`, verified vertical |
+| horizontal | vertical | unknown | no | 0 | `consent-required` |
+| horizontal | vertical | local-only | no | 1 | `ok`, `changed=true`, verified vertical |
+| vertical | horizontal | profile-syncable | yes | 1 | `ok`, `changed=true`, verified horizontal |
 
 Run the pure reference tests before local mutation work:
 
@@ -312,7 +283,7 @@ Pinned upstream Chrome `152.0.7977.75` marks the former `VerticalTabsEnabled` sy
 - if a signed-in test profile and second device/profile instance are safely available, verify that a controlled orientation change does not propagate unexpectedly;
 - do not expose account identifiers in evidence.
 
-For any different Chromium/Chrome version where syncability is uncertain, return `syncImpact=unknown`. That uncertainty does not block readback or an already-desired verified no-op; it requires consent only immediately before a real mutation.
+For any different Chromium/Chrome version where syncability is uncertain, return `syncImpact=unknown`. Read effective orientation first; require consent only when a mutation is actually needed.
 
 ### Managed/supervised control
 
@@ -441,9 +412,7 @@ Commit one aggregate result per qualified browser/package form. Example:
 
 Do not use the literal example fingerprint in real evidence. Store the actual SHA-256 fingerprint, which identifies an executable build rather than user data.
 
-For an early hard-gate NO-GO, a smaller structured evidence object is sufficient if it includes the exact safe predicate that failed, the package/executable fingerprint already known at that point, the probe identity/version, `reproducedByCurrentRemoteChange`, and an explicit list/reason for skipped dependent phases. Do not invent booleans that were not retained by a historical observation; rerun the deterministic probe instead.
-
-For each executed matrix row also record:
+For each matrix row also record:
 
 - operation/result status;
 - reason code;
@@ -455,9 +424,11 @@ For each executed matrix row also record:
 - cleanup pass/fail;
 - collateral-state pass/fail.
 
+For an early hard-gate stop, also record the exact failing phase, `SKIPPED_AFTER_HARD_GATE` for each dependent phase, and every earlier `PENDING_LOCAL` row. Never convert pending rows to pass/fail from inference.
+
 ## Phase 12 — final verdict
 
-Append the sanitized results to `report.md` and record exactly one final decision.
+Append the sanitized results to `report.md`.
 
 ### GO — production adapter
 
@@ -475,18 +446,20 @@ Record:
 - no-collateral proof;
 - stable reason codes.
 
+A GO verdict requires the full applicable matrix; an early stop can never be GO.
+
 ### NO-GO
 
-Use if any hard requirement cannot be met safely. The candidate may end here either after the full matrix or through the early-exit rule when the failing prerequisite is independent of the skipped mutation/profile rows.
+Use if any hard requirement cannot be met safely. A reproducible hard-gate failure may block production before later mutation-dependent rows are run.
 
 Record:
 
-- pinned versions and all feature state actually measured before the stop;
-- `SKIPPED — prerequisite hard gate failed` for unexecuted dependent feature/manual/mutation rows;
+- pinned versions and whatever feature state was actually measured;
 - smallest reproducible failure for the best candidate;
 - why the failure is security/UX/correctness relevant;
 - why rejected mechanisms remain rejected;
-- upstream/target capability needed before re-evaluation;
-- updated `capability-fingerprint.json`.
+- upstream capability needed before re-evaluation;
+- updated `capability-fingerprint.json`;
+- every still-`PENDING_LOCAL` prerequisite and every `SKIPPED_AFTER_HARD_GATE` dependent row.
 
-A NO-GO is successful completion of FDM-821 and blocks production implementation until the capability fingerprint materially changes.
+If required earlier evidence such as Phase 2 was never executed, the correct status is **INCOMPLETE LOCAL QUALIFICATION — PRODUCTION ADAPTER NO-GO**. That blocks production honestly without claiming the local matrix is complete.

@@ -4,19 +4,19 @@ This lane determines whether Chrome/Chromium's native tab-strip orientation can 
 
 ## Current state
 
-**NO-GO — early hard-gate exit on the recorded local AT-SPI observation.** This is not a claim that the full mutation/profile matrix was executed.
+**INCOMPLETE LOCAL QUALIFICATION — PRODUCTION ADAPTER NO-GO.**
 
-The pre-existing sanitized Omarchy observation matched the Chrome AT-SPI application but exposed no focused top-level native frame and no state-specific orientation action in the read-only topology. Exact focused-target ownership is a mandatory prerequisite for both `get` and `set`, so the candidate fails closed before any orientation mutation is justified.
+The pre-existing sanitized Omarchy observation matched the Chrome AT-SPI application but exposed no focused top-level native frame. Exact focused-target ownership is a mandatory prerequisite for both `get` and `set`, so the candidate fails closed before any orientation mutation is justified.
 
-This remote review-fix change does **not** have access to the target Omarchy session and did not rerun or extend that local evidence. It adds a deterministic privacy-safe read-only probe and a structured transcription of the already-recorded observation. Under `local-qualification.md`'s explicit early-exit rule, feature/manual-switch and mutation-dependent rows are marked `SKIPPED — prerequisite hard gate failed` rather than being presented as completed tests.
+This remote review-fix work does **not** have access to the target Omarchy session and did not rerun or extend that local evidence. It adds a deterministic privacy-safe read-only probe and a structured transcription of the already-recorded observation. Native feature availability, initial orientation, and the prescribed manual live switch remain `PENDING_LOCAL`; only phases that depend on the failed focused-target prerequisite are `SKIPPED_AFTER_HARD_GATE`.
 
-Public Chrome/Chromium, extension, and CDP interfaces still do not provide the required exact live orientation adapter. Re-evaluate the AT-SPI candidate only when the capability fingerprint materially changes or the target machine reruns the probe and no longer reproduces the focused-target failure.
+Public Chrome/Chromium, extension, and CDP interfaces still do not provide the required exact live orientation adapter. The recorded hard-gate failure keeps production **NO-GO**, but the local qualification must not be described as complete until the required pending local evidence is actually measured.
 
 Do not treat the presence of a state-specific Chrome menu action as GO by itself. Profile-scope identity/token separation, policy/control classification, idempotent verification, collateral-state preservation, accessibility scope, stale-target handling, and deterministic cleanup are all hard gates.
 
 ## Artifacts
 
-- `report.md` — pinned upstream findings, rejected mechanisms, recorded local early-exit evidence, and final decision rules.
+- `report.md` — pinned upstream findings, rejected mechanisms, recorded local hard-gate evidence, pending/skipped matrix state, and decision rules.
 - `adapter-contract.md` — proposed `probe/get/set` production boundary and failure semantics.
 - `adapter-result.schema.json` — machine-readable result schema required by the contract.
 - `contract-set-model.py` — pure reference model for consent/idempotence/postflight ordering; no browser side effects.
@@ -24,7 +24,7 @@ Do not treat the presence of a state-specific Chrome menu action as GO by itself
 - `probe-atspi.py` — deterministic read-only AT-SPI topology probe that prunes web/document content and never emits accessible names.
 - `evidence/atspi-readonly-2026-09-02.json` — structured transcription of the pre-existing sanitized local observation; explicitly not rerun by this remote change.
 - `capability-fingerprint.json` — source/target fingerprint and capability changes that warrant re-evaluation.
-- `local-qualification.md` — deterministic target Omarchy matrix plus the normative early hard-gate exit rule.
+- `local-qualification.md` — deterministic target Omarchy matrix with explicit `PENDING_LOCAL` and `SKIPPED_AFTER_HARD_GATE` rules.
 
 ## Branch contract
 

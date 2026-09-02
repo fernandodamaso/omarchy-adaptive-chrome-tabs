@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "observedAt": "2026-09-02",
   "researchScope": "remote-upstream-plus-recorded-target-omarchy-read-only",
-  "qualificationMode": "no-go-early-hard-gate-exit",
+  "qualificationComplete": false,
+  "qualificationMode": "incomplete-local-qualification-production-no-go",
   "localEvidenceReproducedByCurrentRemoteChange": false,
   "publicStable": {
     "browserFamily": "chrome",
@@ -29,7 +30,7 @@
     "documentedExternalProfileScopeIdentity": false
   },
   "remainingCandidate": "linux-at-spi-semantic-native-browser-ui",
-  "candidateState": "recorded-local-atspi-focused-target-hard-gate-failed",
+  "candidateState": "recorded-local-atspi-focused-target-hard-gate-failed-local-reproduction-pending",
   "remoteDecision": "no-go",
   "targetMachine": {
     "omarchyVersion": "4.0.2-1",
@@ -43,9 +44,11 @@
     "atspiFocusedNativeNode": false,
     "atspiStateSpecificOrientationActionObservedInReadOnlyTopology": false
   },
-  "finalDecisionReason": "Recorded local read-only evidence exposed Chrome application/frame objects but no focused native top-level target; exact target ownership therefore fails closed before state readback or mutation. State-specific orientation action was also not observed in the read-only topology. The current remote remediation did not rerun the target machine.",
+  "finalDecisionReason": "Recorded local read-only evidence exposed Chrome application/frame objects but no focused native top-level target; exact target ownership therefore fails closed before state readback or mutation. The current remote remediation did not rerun the target machine. Native feature availability, initial orientation, manual live switching, and dependent matrix evidence remain pending or skipped and local qualification is incomplete.",
   "hardUnknowns": [
-    "native feature availability on the recorded target package after the early exit",
+    "native vertical-tabs feature availability on the recorded target package",
+    "initial effective orientation on the recorded target package",
+    "manual live orientation switch without browser restart",
     "focused-window-to-profile-scope mapping",
     "privacy-preserving same-profile scope token",
     "different-profile token separation within one browser process",
