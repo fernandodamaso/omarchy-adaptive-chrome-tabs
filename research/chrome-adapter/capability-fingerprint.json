@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "observedAt": "2026-09-02",
-  "researchScope": "remote-upstream-only",
+  "researchScope": "remote-upstream-plus-target-omarchy-read-only",
   "publicStable": {
     "browserFamily": "chrome",
     "platform": "linux",
@@ -27,8 +27,21 @@
     "documentedExternalProfileScopeIdentity": false
   },
   "remainingCandidate": "linux-at-spi-semantic-native-browser-ui",
-  "candidateState": "requires-target-machine-qualification",
-  "remoteDecision": "no-go-decision-not-yet-authorized",
+  "candidateState": "target-machine-atspi-focused-state-unavailable",
+  "remoteDecision": "no-go",
+  "targetMachine": {
+    "omarchyVersion": "4.0.2-1",
+    "hyprlandVersion": "0.56.2-1",
+    "hyprlandCommit": "efb50993780079460b0cbed1363e2166a2de1d9f",
+    "quickshellVersion": "0.3.1-1",
+    "chromeVersion": "152.0.7977.64-1",
+    "chromiumVersion": "151.0.7922.173-1",
+    "windowBackend": "wayland",
+    "atspiApplicationMatched": true,
+    "atspiFocusedNativeNode": false,
+    "atspiStateSpecificOrientationAction": false
+  },
+  "finalDecisionReason": "AT-SPI exposed Chrome application/frame objects but no focused native node or state-specific orientation action; exact target ownership and effective-state readback cannot be proven without rejected fallbacks.",
   "hardUnknowns": [
     "focused-window-to-profile-scope mapping",
     "privacy-preserving same-profile scope token",

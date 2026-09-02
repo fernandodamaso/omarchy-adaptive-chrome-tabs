@@ -4,9 +4,11 @@ This lane determines whether Chrome/Chromium's native tab-strip orientation can 
 
 ## Current state
 
-**Remote research is complete; the final GO/NO-GO verdict is intentionally pending target-machine qualification.**
+**Local qualification is complete — NO-GO.** The sanitized target-machine
+result is recorded in `report.md`; no orientation write or production adapter
+was used.
 
-Public Chrome/Chromium, extension, and CDP interfaces do not provide the required exact live orientation adapter. The only remaining candidate is semantic Linux accessibility automation against Chrome's native state-specific orientation UI, and FDM-821 requires that behavior to be measured on the real Omarchy machine before a production decision.
+Public Chrome/Chromium, extension, and CDP interfaces do not provide the required exact live orientation adapter. On the real Omarchy machine, the remaining semantic Linux accessibility candidate exposed no focused native window state or state-specific orientation action, so the production gate is NO-GO.
 
 Do not treat the presence of a state-specific Chrome menu action as GO by itself. Profile-scope identity/token separation, policy/control classification, idempotent verification, collateral-state preservation, accessibility scope, stale-target handling, and deterministic cleanup are all hard gates.
 

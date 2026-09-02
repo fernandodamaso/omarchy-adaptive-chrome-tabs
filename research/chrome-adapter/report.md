@@ -1,6 +1,6 @@
 # FDM-821 — Chrome orientation adapter feasibility report
 
-**Status:** REMOTE PHASE COMPLETE — FINAL VERDICT REQUIRES TARGET-MACHINE QUALIFICATION  
+**Status:** LOCAL QUALIFICATION COMPLETE — NO-GO
 **Research branch:** `research/fdm-821-chrome-orientation-adapter`  
 **Pinned branch base:** `444b31be1d12ea25729c4948a0428c5ebb72179a`  
 **Remote research date:** 2026-09-02
@@ -11,7 +11,7 @@ No **GO — production adapter** decision is justified by remote source inspecti
 
 The required investigation order leaves exactly one production candidate that still warrants local qualification: semantic Linux accessibility automation against Chrome's native browser UI. Public browser/extension/automation interfaces do not provide an exact read/set vertical-tab API for the user's existing profile, and the rejected fallback mechanisms in FDM-821 are not reconsidered here.
 
-This branch therefore records a **pending feasibility decision**, not a soft GO. The target Omarchy machine must execute `local-qualification.md`. If the accessibility candidate fails any hard gate—especially exact focused-window/profile scoping, privacy-preserving scope-token separation, state readback, policy/control classification, idempotent set/verify, collateral-state preservation, or deterministic cleanup—the final FDM-821 result is **NO-GO**. Do not proceed to remote debugging, live preference-file editing, input injection, internal commands, or restarts as fallback work.
+The target Omarchy qualification below records **NO-GO**. The accessibility candidate failed the focused-window/state-readback gate before any orientation write was considered. Do not proceed to remote debugging, live preference-file editing, input injection, internal commands, or restarts as fallback work.
 
 ## Pinned public baseline
 
@@ -254,3 +254,59 @@ The machine-readable source-side fingerprint is in `capability-fingerprint.json`
 - Chrome 152 extension permission availability: <https://github.com/chromium/chromium/blob/152.0.7977.75/chrome/common/extensions/api/_permission_features.json>
 - Chrome 152 CDP Browser domain: <https://github.com/chromium/chromium/blob/152.0.7977.75/third_party/blink/public/devtools_protocol/domains/Browser.pdl>
 - Chrome remote-debugging security change: <https://developer.chrome.com/blog/remote-debugging-port>
+
+## Target Omarchy qualification — 2026-09-02
+
+### Pinned environment
+
+```text
+Omarchy: 4.0.2-1 (stable)
+Hyprland: 0.56.2-1, commit efb50993780079460b0cbed1363e2166a2de1d9f
+Quickshell: 0.3.1-1
+Chrome Stable: 152.0.7977.64-1, native pacman package, native Wayland
+Chromium: 151.0.7922.173-1, native pacman package, not selected for writes
+Chrome executable fingerprint: sha256:04e973a4c359a87ef63871ec8726e08fabe9919c60f972d5ca6f56f80a2939ed
+Chromium executable fingerprint: sha256:78f94ee05d5d6fd1bd8239b9700d3cf54d540911febad4c7cea01080273943f9
+AT-SPI: at-spi2-core 2.60.6-1; python-gobject 3.56.3-1; user accessibility bus present
+```
+
+The installed Chrome build is `.64`, not the remotely researched `.75` source
+baseline. The source-side sync classification is therefore not promoted to a
+runtime claim; any mutation would require `syncImpact=unknown` and explicit
+consent.
+
+### Read-only accessibility result
+
+The active Chrome compositor identity was allowlisted and matched one AT-SPI
+application. Its native accessibility topology exposed three frame objects and
+menu-capable actions, but neither the application nor frames carried the
+focused state. No state-specific horizontal/vertical action was exposed in the
+inspected topology. Web/document subtrees were not traversed, no menu was
+opened, and no orientation action was invoked.
+
+This means the candidate cannot safely prove focused-window ownership or derive
+the current effective orientation. It fails the `get(target)` and exact
+focused-target hard gates before `set` is even considered.
+
+### Required matrix status
+
+```text
+native vertical-tabs feature availability: UNKNOWN (no safe semantic readback)
+initial orientation: UNKNOWN
+manual live switch: NOT TESTED (would require an unqualified write)
+same-profile/different-profile scope tokens: NOT PROVEN
+same-process multi-profile targeting: NOT PROVEN
+managed/supervised/guest/incognito: unavailable; fail closed
+stale target/PID reuse/helper/spoof: contract defined; live adapter absent
+idempotent set/verification/conflict/cleanup: NOT TESTED; no adapter exists
+collateral preference preservation: NOT TESTED; no orientation write performed
+```
+
+### Final decision
+
+**NO-GO — production adapter.** Public command, CDP, ordinary extension, and
+documented desktop mechanisms remain rejected as recorded above. The only
+remaining candidate, semantic AT-SPI, did not expose a privacy-safe focused
+window/state readback surface on the installed Chrome/Omarchy session. Proving
+the missing behavior would require a rejected fallback or an explicit future
+capability change; no Chrome profile orientation was changed during this run.
