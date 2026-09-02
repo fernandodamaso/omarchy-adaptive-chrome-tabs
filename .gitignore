@@ -1,0 +1,21 @@
+# Local/raw research captures
+research/**/raw/
+tests/fixtures/raw/
+*.raw.json
+*.local.json
+*.capture.json
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local tooling/cache
+.cache/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Editor/local state
+.vscode/
+.idea/
