@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-02",
+  "researchScope": "remote-upstream-only",
+  "publicStable": {
+    "browserFamily": "chrome",
+    "platform": "linux",
+    "version": "152.0.7977.75",
+    "chromiumTag": "152.0.7977.75",
+    "chromiumCommit": "4999cc1efed37c4d91dc4ce6ec4b0a50e2a9a8cb",
+    "branchPointRevision": 1669021
+  },
+  "sourceFacts": {
+    "orientationPreference": "vertical_tabs.enabled",
+    "orientationScope": "profile",
+    "verticalTabsFeatureDefault": "disabled",
+    "verticalTabsLaunchDefaultNonChromeOS": "enabled",
+    "effectiveFeatureRule": "VerticalTabs OR VerticalTabsLaunch",
+    "syncImpactAtPinnedChromeSource": "local-only",
+    "formerSyncPrefId": 100330,
+    "firstEnableCollateralPreference": "vertical_tabs.enabled_first_time",
+    "collapseStateSeparate": true,
+    "uncollapsedWidthSeparate": true,
+    "appMenuStateSpecificOrientationAction": true,
+    "publicCdpVerticalTabsCommand": false,
+    "ordinaryExtensionSettingsPrivate": false,
+    "documentedExternalProfileScopeIdentity": false
+  },
+  "remainingCandidate": "linux-at-spi-semantic-native-browser-ui",
+  "candidateState": "requires-target-machine-qualification",
+  "remoteDecision": "no-go-decision-not-yet-authorized",
+  "hardUnknowns": [
+    "focused-window-to-profile-scope mapping",
+    "privacy-preserving same-profile scope token",
+    "different-profile token separation within one browser process",
+    "semantic state readback on target Chrome package",
+    "managed/supervised preference-control classification",
+    "accessibility enablement breadth",
+    "idempotent state-specific action and postflight verification",
+    "first-enable collateral acceptance",
+    "timeout/cancellation/menu cleanup",
+    "incognito/guest behavior",
+    "Chromium package/version behavior when installed"
+  ],
+  "reevaluateWhen": [
+    "public exact vertical-tab read/set API appears",
+    "CDP BrowserCommandId gains supported vertical-tab state operations without default-profile debugging exposure",
+    "normal extension API gains supported native orientation access",
+    "documented Linux desktop interface exposes focused-window profile scope safely",
+    "AT-SPI exposes a stable privacy-safe profile-scope identifier",
+    "orientation preference scope changes",
+    "sync semantics change",
+    "first-enable collateral semantics change"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fdm-821:chrome-orientation-adapter-result:v1",
+  "title": "FDM-821 Chrome orientation adapter result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "orientation",
+    "scope",
+    "scopeToken",
+    "scopeTokenLifetime",
+    "preferenceControl",
+    "syncImpact",
+    "accessibilityRequirement",
+    "browserFamily",
+    "browserVersion",
+    "reasonCode"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "unsupported",
+        "stale-target",
+        "timeout",
+        "conflict",
+        "consent-required",
+        "policy-controlled",
+        "error"
+      ]
+    },
+    "orientation": {
+      "enum": ["vertical", "horizontal", "unknown"]
+    },
+    "scope": {
+      "enum": ["profile", "browser-process", "window", "unknown"]
+    },
+    "scopeToken": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scopeTokenLifetime": {
+      "enum": ["browser-process", "adapter-session", "persistent", "unknown"]
+    },
+    "preferenceControl": {
+      "enum": ["user", "managed", "unknown"]
+    },
+    "syncImpact": {
+      "enum": ["local-only", "profile-syncable", "unknown"]
+    },
+    "accessibilityRequirement": {
+      "enum": ["none", "existing", "must-enable", "unknown"]
+    },
+    "browserFamily": {
+      "enum": ["chrome", "chromium", "unknown"]
+    },
+    "browserVersion": {
+      "type": ["string", "null"],
+      "maxLength": 128
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "changed": {
+      "type": ["boolean", "null"]
+    },
+    "verified": {
+      "type": "boolean"
+    }
+  }
+}
