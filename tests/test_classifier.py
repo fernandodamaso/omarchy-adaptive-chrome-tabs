@@ -59,6 +59,20 @@ class EligibleWindowClassifierTests(unittest.TestCase):
                 self.assertEqual("ineligible", result.status)
                 self.assertEqual("browser-channel-not-allowlisted", result.reason)
 
+    def test_non_stable_channel_requires_both_explicit_opt_in_and_separate_qualification(self):
+        unqualified = classify_window(
+            observation(browserChannel="beta", browserChannelQualified=False),
+            allowed_browser_channels={"stable", "beta"},
+        )
+        self.assertEqual("ambiguous", unqualified.status)
+        self.assertEqual("browser-channel-unqualified", unqualified.reason)
+
+        qualified = classify_window(
+            observation(browserChannel="beta", browserChannelQualified=True),
+            allowed_browser_channels={"stable", "beta"},
+        )
+        self.assertEqual("eligible", qualified.status)
+
     def test_unknown_channel_is_ambiguous_even_when_app_and_package_are_allowlisted(self):
         result = classify_window(observation(browserChannel="unknown"))
         self.assertEqual("ambiguous", result.status)

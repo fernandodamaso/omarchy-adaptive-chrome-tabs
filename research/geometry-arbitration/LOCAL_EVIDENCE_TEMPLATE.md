@@ -3,204 +3,172 @@
 ## Decision status
 
 ```text
-NO-GO
+LOCAL EVIDENCE PENDING
 ```
 
-This is a successful feasibility result, not a production implementation. The
-target machine did not provide enough evidence to qualify a fresh, bounded,
-logical-pixel geometry contract for every required resize/lifecycle path.
+Local qualification is incomplete. The read-only checkpoint previously recorded on the target Omarchy machine is retained below only as partial, non-decisive evidence. It did not execute the required controlled resize/freshness, fractional-scale, lifecycle, latency, or resource matrix, so neither GO nor NO-GO is justified from this record.
 
 ## Capture boundary and safety
 
-Captured 2026-09-02 on the target Omarchy desktop using only read-only,
-one-shot `hyprctl` snapshots, a bounded socket2 event probe, pure policy tests,
-and an AT-SPI topology read. No Chrome preference/profile write, orientation
-action, remote-debugging endpoint, alternate data directory, global input,
-privileged helper, or production service was used. Raw snapshots remain under
-the ignored `research/geometry-arbitration/raw/` directory and are not evidence
-artifacts.
+The recorded checkpoint used read-only one-shot `hyprctl` snapshots, a bounded socket2 event-name probe, pure policy tests, and a read-only accessibility topology observation. No Chrome preference/profile write, orientation action, remote-debugging endpoint, alternate data directory, global input injection, privileged helper, production service, or committed raw browser capture was used.
 
-## Pinned stack
+Raw local captures remain outside tracked evidence. Any future update to this report must contain only sanitized facts that pass the repository privacy gate.
 
-| Component | Exact version/build | Reproducible command | Notes |
+## Previously recorded pinned stack
+
+These values were recorded by the earlier local checkpoint and are not newly measured by this remediation:
+
+| Component | Recorded version/build | Reproducible command | Qualification use |
 | --- | --- | --- | --- |
-| Omarchy Quattro | `4.0.2-1` | `omarchy version` | stable channel |
-| Omarchy channel | `stable` | `omarchy version channel` | |
-| Hyprland | `0.56.2-1`, commit `efb50993780079460b0cbed1363e2166a2de1d9f` | `hyprctl version` | Wayland session |
-| Quickshell | `0.3.1-1` | `qs --version` | Arch package |
-| Chrome Stable | `152.0.7977.64-1` | `google-chrome-stable --version` | native package; executable SHA-256 `04e973a4c359a87ef63871ec8726e08fabe9919c60f972d5ca6f56f80a2939ed` |
-| Chromium | `151.0.7922.173-1` | `chromium --version` | installed, not observed as a target window; executable SHA-256 `78f94ee05d5d6fd1bd8239b9700d3cf54d540911febad4c7cea01080273943f9` |
-| Session | Wayland (`XDG_SESSION_TYPE=wayland`) | environment capture | native Wayland browser window observed; XWayland variant not tested |
-| Monitors | two `1920x1080`, scale `1.0`, transform `0` | `hyprctl monitors -j` | fractional scale/rotation/hotplug not available in this run |
+| Omarchy Quattro | `4.0.2-1` | `omarchy version` | version pin only |
+| Omarchy channel | `stable` | `omarchy version channel` | version pin only |
+| Hyprland | `0.56.2-1`, commit `efb50993780079460b0cbed1363e2166a2de1d9f` | `hyprctl version` | version pin only |
+| Quickshell | `0.3.1-1` | `qs --version` | version pin only |
+| Chrome Stable | `152.0.7977.64-1` | `google-chrome-stable --version` | package/version checkpoint only |
+| Chromium | `151.0.7922.173-1` | `chromium --version` | installed; target-window behavior not qualified |
+| Session | Wayland | environment checkpoint | native Wayland target observed; XWayland untested |
+| Monitors | two `1920x1080`, scale `1.0`, transform `0` | `hyprctl monitors -j` | fractional scale/rotation/hotplug untested |
 
 ### FDM-816 reuse check
 
-```text
-FDM-816 exact Omarchy match: YES (4.0.2-1)
-FDM-816 exact Hyprland match: YES (0.56.2-1, commit efb5099…)
-FDM-816 exact Quickshell match: YES (0.3.1-1)
-Reuse permitted: YES, aggregate reference only
-```
-
-The matching FDM-816 run recorded no dedicated pixel-level geometry event and
-used a research-only 12-sample, 250 ms bounded sampler. Its command durations
-were 3.873–4.236 ms. That result is not treated as proof that FDM-822 can
-detect every crossing or meet an end-to-end latency budget.
+The earlier record noted exact Omarchy/Hyprland/Quickshell version matches with FDM-816 and treated that evidence as aggregate reference only. That does not replace any FDM-822 matrix row. No FDM-816 observation may be used as proof of a resize/freshness case unless it directly measures the same required path under the pinned stack.
 
 ## Browser/package identity qualification
 
-| Variant | Package source | Native Wayland/XWayland | Stable compositor identity | Normal-tabbed distinguishable | Controlling? |
-| --- | --- | --- | --- | --- | --- |
-| Chrome Stable | native pacman package | Wayland observed | `google-chrome` | NO; local semantic/focus proof incomplete | NO |
-| Chromium | native pacman package | not observed | not observed | NO | NO |
-| Chrome Beta/Dev/Canary | not installed/observed | unsupported | unavailable | NO | NO |
-| Flatpak/Snap/wrapper | not installed | unsupported | unavailable | NO | NO; fail closed |
-| Incognito | not provisioned for this run | unsupported by default | unavailable | NO | NO; requires FDM-821 scope proof |
-| Guest | not provisioned for this run | unsupported by default | unavailable | NO | NO; requires FDM-821 scope proof |
-| Managed | no managed test profile available | unsupported | unavailable | NO | NO; policy state unproven |
-| PWA / `--app` | not exercised | unsupported | fail-closed fixture only | NO | NO |
-| DevTools / popup / dialog / PiP | not exercised | unsupported | fail-closed fixture only | NO | NO |
+| Variant | Recorded evidence | Current qualification |
+| --- | --- | --- |
+| Chrome Stable | allowlisted compositor app ID observed on native Wayland | PENDING: package-to-window binding and normal-tabbed identity semantics not fully proven |
+| Chromium | installed; no target-window checkpoint recorded | PENDING |
+| Chrome Beta/Dev/Canary | not installed/observed in recorded checkpoint | UNSUPPORTED by default; explicit opt-in plus separate qualification required |
+| Flatpak/Snap/wrapper | not exercised | PENDING; fail closed |
+| Incognito/Guest | not exercised | PENDING; non-controlling until FDM-821 scope proof |
+| Managed | no qualified managed test state | PENDING |
+| PWA / app mode | synthetic fail-closed fixtures only | LIVE CASE PENDING |
+| DevTools / popup / dialog / PiP | synthetic fail-closed fixtures only | LIVE CASE PENDING |
+| first-run/recovery/update surfaces | not exercised | PENDING |
 
-The sanitized active checkpoint contained one allowlisted `google-chrome`
-surface with outer snapshot size `1896x951`, but its package qualification,
-normal-tabbed identity, and logical geometry unit were deliberately left
-unqualified.
+The classifier now enforces Stable by default. An allowlisted app ID and qualified package cannot make Beta/Dev/Canary eligible unless that channel is explicitly opted in and separately marked locally qualified.
 
-## Accessibility topology (read-only)
+## Accessibility topology checkpoint
 
-AT-SPI prerequisites were already installed (`at-spi2-core 2.60.6-1`,
-`python-gobject 3.56.3-1`) and the user accessibility bus was present. The
-matching Chrome application exposed three frame objects and menu-capable
-actions, but no application or frame carried the focused state. No
-state-specific orientation action was exposed in the inspected topology.
-This is insufficient to map the focused compositor window to a safe controlling
-surface; no menu was opened and no orientation action was invoked.
+The earlier record noted that the matching Chrome application exposed application/frame topology but did not provide enough focused-state evidence to map the compositor target to a safe controlling surface. No accessibility action was invoked. This is partial context only and does not qualify FDM-822 geometry or FDM-821 adapter control.
 
 ## Geometry field qualification
 
 ```text
-Selected outer-width field: hyprctl activewindow/clients size[0] (observed only)
-Reported unit: UNVERIFIED
-Finite-positive normalization: implemented by the pure prototype; not promoted to a live contract
-Fractional handling: NOT MEASURED (only scale 1.0 available)
-Border inclusion: UNKNOWN (border option observed as 2; inclusion not proven)
-Gap inclusion: UNKNOWN
-Shadow/decoration inclusion: UNKNOWN (rounding observed as 0)
-Rounding behavior: UNKNOWN
+candidate field observed: hyprctl activewindow/clients size[0]
+reported unit: UNVERIFIED
+finite-positive normalization: pure prototype only
+fractional handling: NOT MEASURED
+border inclusion: UNKNOWN
+gap inclusion: UNKNOWN
+shadow/decoration inclusion: UNKNOWN
+rounding behavior: UNKNOWN
 ```
 
-At scale `1.0`, a `1920`-logical-width monitor contained a `1896`-wide tiled
-Chrome snapshot at an inset position. This single checkpoint cannot distinguish
-logical pixels from a coincident physical value or prove border/gap/decorative
-semantics. Zero, negative, non-finite, and transient values remain unknown as
-required.
+The earlier scale-1.0 checkpoint contained a tiled browser width numerically below the monitor width. A single scale-1.0 observation cannot distinguish logical from coincident physical units or prove border/gap/decoration semantics.
 
 ### Scale/transform matrix
 
-| Scale/transform | Reported client width | Physical comparison | Logical/physical conclusion |
-| --- | ---: | ---: | --- |
-| 1.0 / transform 0 | 1896 (single checkpoint) | monitor width 1920 | unverified |
-| 1.25 | not available | not measured | unsupported in this run |
-| 1.5 | not available | not measured | unsupported in this run |
-| 2.0 | not available | not measured | unsupported in this run |
-| rotated monitor | not available | not measured | unsupported in this run |
+| Scale/transform | Status | Conclusion |
+| --- | --- | --- |
+| 1.0 / transform 0 | single checkpoint only | unit semantics UNVERIFIED |
+| 1.25 | NOT MEASURED | PENDING |
+| 1.5 | NOT MEASURED | PENDING |
+| 2.0 | NOT MEASURED | PENDING |
+| rotated monitor | NOT MEASURED | PENDING |
 
 ## Geometry freshness matrix
 
-No manual or programmatic resize was performed; global input and compositor
-state mutation were out of scope. Rows marked `not measured` are explicit
-unsupported cases, not successful observations.
+No resize interaction was performed during the recorded 30-second socket2 probe. Therefore the absence of a resize/geometry event in that interval is **not** evidence that resize events are absent during resize, and it cannot reject an event-based observation strategy.
 
-| Case | Source/trigger | Crossing-to-detection ms | Stale/missed? | Notes |
-| --- | --- | ---: | --- | --- |
-| slow tiled resize | not measured | N/A | UNKNOWN | requires manual matrix run |
-| rapid tiled resize | not measured | N/A | UNKNOWN | requires manual matrix run |
-| slow floating resize | not measured | N/A | UNKNOWN | requires manual matrix run |
-| rapid floating resize | not measured | N/A | UNKNOWN | requires manual matrix run |
-| mouse resize after 60s stable focus | not measured | N/A | UNKNOWN | long-focus crossing unavailable |
-| keyboard resize after 60s stable focus | not measured | N/A | UNKNOWN | global input forbidden |
-| unrelated tiled-window reflow | not measured | N/A | UNKNOWN | requires controlled layout change |
-| floating movement without resize | not measured | N/A | UNKNOWN | requires controlled movement |
-| maximize / restore | not measured | N/A | UNKNOWN | raw fullscreen-like fields not mapped here |
-| fullscreen / immersive / kiosk enter | fail-closed classifier | N/A | N/A | no controlling request |
-| fullscreen / immersive / kiosk exit | fail-closed classifier | N/A | N/A | fresh dwell required but unmeasured |
-| split/master layout change | not measured | N/A | UNKNOWN | requires controlled layout change |
-| move between monitors | not measured | N/A | UNKNOWN | requires controlled move |
-| workspace/special workspace | socket2 names only | N/A | UNKNOWN | no geometry proof |
-| monitor scale/transform | not measured | N/A | UNKNOWN | fractional/rotation unavailable |
-| rearrange/hotplug/unplug | not measured | N/A | UNKNOWN | unavailable |
-| suspend/resume | not measured | N/A | UNKNOWN | unavailable |
-| shell/compositor reload | not measured | N/A | UNKNOWN | unavailable |
-| lock/unlock | fail-closed policy only | N/A | N/A | no sampling/action while locked |
+| Case | Status | Required local evidence |
+| --- | --- | --- |
+| slow tiled resize | NOT MEASURED | event/source trigger plus crossing-to-detection timing |
+| rapid tiled resize | NOT MEASURED | event/source trigger plus crossing-to-detection timing |
+| slow floating resize | NOT MEASURED | event/source trigger plus crossing-to-detection timing |
+| rapid floating resize | NOT MEASURED | event/source trigger plus crossing-to-detection timing |
+| mouse resize after 60s stable focus | NOT MEASURED | long-focus crossing timing |
+| keyboard resize after 60s stable focus | NOT MEASURED | controlled local keyboard interaction timing |
+| unrelated tiled-window reflow | NOT MEASURED | browser focus unchanged; geometry freshness proof |
+| floating movement without resize | NOT MEASURED | prove no false transition/action |
+| maximize / restore | NOT MEASURED | eligibility and fresh geometry proof |
+| fullscreen / immersive / kiosk enter | PURE POLICY ONLY | live invalidation/cancellation still pending |
+| fullscreen / immersive / kiosk exit | PURE POLICY ONLY | fresh eligible observation plus full dwell still pending live |
+| split/master layout change | NOT MEASURED | fresh geometry proof |
+| move between monitors | NOT MEASURED | fresh geometry and scope/window binding proof |
+| workspace/special workspace | NOT MEASURED | lifecycle freshness proof |
+| monitor scale/transform | NOT MEASURED | logical-unit proof |
+| rearrange/hotplug/unplug | NOT MEASURED | invalidation/recovery proof |
+| suspend/resume | PURE POLICY ONLY | live timing invalidation/recovery still pending |
+| shell/compositor reload | NOT MEASURED | startup snapshot/recovery proof |
+| lock/unlock | PURE POLICY ONLY | live no-sampling/no-action and fresh-dwell recovery pending |
 
-## Bounded event observations
+## Bounded event-name checkpoint
 
-The reviewed socket2 helper ran for 2 seconds while idle and again for 30
-seconds. The idle run produced no events. The 30-second run produced only
-`focusedmon`, `focusedmonv2`, `activewindow`, `activewindowv2`, `windowtitle`,
-and `windowtitlev2`; it produced no resize or geometry event. Event payloads
-were discarded. Therefore no direct event strategy was qualified, and the
-required threshold-crossing latency cannot be claimed.
+The earlier helper ran for bounded idle/focus observation intervals and retained event names only; payloads were discarded. In the 30-second interval it recorded focus/window metadata event names but no resize was intentionally performed.
 
-## Observation strategy decision
+**Permitted conclusion:** the no-resize interval did not independently qualify a geometry event source.
 
-1. Dedicated fresh toplevel geometry property/event: **NOT QUALIFIED**; the
-   selected `size[0]` field is not proven logical or fresh.
-2. Supported begin/end resize signal plus coalesced refresh: **NOT PROVEN**;
-   bounded socket2 observation showed no resize/geometry event.
-3. Lifecycle/layout events plus one coalesced refresh: **NOT PROVEN**;
-   matching FDM-816 evidence found no dedicated pixel-level event and this run
-   did not establish coverage of every resize path.
-4. Focused-browser sentinel plus adaptive burst: **NOT QUALIFIED**; no
-   measured crossing, latency, or resource budget exists for this target.
-5. **NO-GO** under the issue contract: a safe, fully measured observation
-   strategy is not available from the evidence gathered without further
-   controlled local instrumentation.
+**Not permitted conclusion:** that Hyprland emits no usable resize/geometry event while a controlled resize is occurring. The required interactive matrix must be run before making that claim.
 
-## Latency metrics
+## Observation-strategy status
+
+Evaluate locally in the mandated order:
+
+1. dedicated fresh toplevel geometry property/event — **PENDING**;
+2. supported resize signal plus coalesced refresh — **PENDING**;
+3. lifecycle/layout events plus coalesced refresh with complete resize-path proof — **PENDING**;
+4. centralized focused-browser sentinel plus bounded adaptive burst, only if required and measured — **PENDING**;
+5. NO-GO only if a required safety/freshness distinction is actually shown to fail, such as a supported stable-focus threshold crossing that remains undetected or an acceptable latency bound requiring unsafe/unbounded polling.
+
+The current evidence does not satisfy step 5.
+
+## Latency and resource metrics
 
 ```text
-crossing-to-detection latency: NOT MEASURED (no controlled crossing)
-crossing-to-verified-orientation latency: NOT APPLICABLE; FDM-821 adapter is not locally qualified
+crossing-to-detection latency: NOT MEASURED
+crossing-to-verified-orientation latency: NOT APPLICABLE in this lane
+Quickshell CPU baseline/delta: NOT MEASURED for a selected strategy
+Hyprland CPU/log baseline/delta: NOT MEASURED for a selected strategy
+command/process rate: no production observation strategy selected
 ```
 
-## Policy/arbitration qualification
+## Pure policy/classifier qualification
 
-The remote pure policy and classifier passed all 39 deterministic tests on this
-machine. Real adapter scope evidence was unavailable, so these remain
-prototype-only:
+Remote deterministic tests cover:
 
 ```text
-same-profile windows share opaque scope token: NOT PROVEN
-scope token lifetime/expiry contract: NOT PROVEN
-startup baseline behavior: PURE-POLICY TESTED; LIVE SCOPE UNPROVEN
-same-region refocus no-op: PURE-POLICY TESTED; LIVE FOCUS UNPROVEN
-same-scope wide↔narrow focus transition: PURE-POLICY TESTED; LIVE GEOMETRY UNPROVEN
-manual/external change ownership: PURE-POLICY TESTED; LIVE ORIENTATION UNPROVEN
-config-change behavior: baseline-on-config-change (pure-policy tested)
-lock/unlock cancellation/recovery: PURE-POLICY TESTED; LIVE LOCK UNPROVEN
+stable-only browser channel default: TESTED
+explicit separately-qualified non-stable opt-in: TESTED
+startup eligible target present at enable/reload baseline: TESTED
+no browser at startup -> first eligible focus normal dwell: TESTED
+same-region settled refocus no-op: TESTED
+region transition dwell/hysteresis/cooldown: TESTED
+request generation + scope/window/region binding: TESTED
+stale verification rejection: TESTED
+stale mismatch does not assign override to a new region: TESTED
+candidate invalidation -> fresh recovery dwell: TESTED
+lock/focus/fullscreen-mode/suspend recovery model: TESTED
+closed fixture schema and negative validation cases: TESTED
 ```
 
-## Resource observations
+These tests do not substitute for live Omarchy geometry, timing, lifecycle, or resource evidence.
+
+## Remaining local-only work
+
+A local operator must still execute and record the complete controlled matrix from `LOCAL_RUNBOOK.md`, including resize interactions, scale/transform cases available on the machine, long-focus crossings, lifecycle/lock/reload cases, observation latency, and resource/log measurements for the selected bounded strategy. Manual local interaction is allowed for qualification; programmatic/global input injection remains forbidden.
+
+Only after every required acceptance row is measured may this section be replaced with exactly one supported outcome:
 
 ```text
-Quickshell CPU baseline: NOT MEASURED for an FDM-822 strategy
-Quickshell CPU during observation: NOT MEASURED for an FDM-822 strategy
-Hyprland CPU/log baseline: NOT MEASURED for an FDM-822 strategy
-Hyprland CPU/log during observation: NOT MEASURED for an FDM-822 strategy
-command/process rate: no continuous subprocess poller; only bounded one-shot helpers
-measurement method and duration: 2 s and 30 s socket2 probes; no selected production strategy
+GO — observation contract
 ```
 
-## Final NO-GO rationale
+or
 
-**NO-GO — observation contract.** On the pinned Omarchy 4.0.2 / Hyprland
-0.56.2 / Quickshell 0.3.1 stack, `hyprctl ... size[0]` was observable but its
-logical-unit and border/gap/decoration semantics were not proven. The 30-second
-bounded socket2 probe produced focus/title notifications but no resize-geometry
-event, and the exact-version FDM-816 aggregate likewise found no dedicated
-pixel-level geometry event. AT-SPI exposed Chrome application/frame objects but
-not a focused state or state-specific orientation surface. The full resize,
-fractional-scale, lifecycle, and resource matrix therefore cannot support a
-bounded GO contract. The classifier and policy remain safe fail-closed research
-artifacts; no production service or Chrome orientation action is authorized.
+```text
+NO-GO
+```
+
+Until then, the FDM-822 local qualification remains incomplete and production implementation is not authorized.

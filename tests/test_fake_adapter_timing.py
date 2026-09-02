@@ -69,28 +69,52 @@ class FakeAdapterTimingTests(unittest.TestCase):
         self.assertEqual(2, len(sink.requests))
         self.assertEqual("horizontal", sink.requests[-1].orientation)
 
-    def test_delayed_completion_from_old_region_cannot_suppress_fresh_dwell(self):
+    def test_delayed_completion_from_old_region_is_rejected_and_cannot_suppress_fresh_dwell(self):
         clock = FakeClock()
+        sink = FakeAdapterSink()
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=100, min_switch_interval_ms=0))
 
         policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
         clock.advance(100)
-        old_request = policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
+        old_request = sink.record(policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms))
+        self.assertEqual("vertical", old_request.orientation)
 
         clock.advance(10)
         self.assertIsNone(policy.observe(obs("browser", 1000, "horizontal"), clock.now_ms))
 
         clock.advance(90)
-        policy.verify(old_request, "vertical", clock.now_ms)
+        self.assertIs(sink.complete(policy, old_request, clock, actual_orientation="vertical"), False)
 
         clock.advance(1)
         self.assertIsNone(policy.observe(obs("browser", 1000, "vertical"), clock.now_ms))
-        clock.advance(100)
+        clock.advance(99)
+        self.assertIsNone(policy.observe(obs("browser", 1000, "vertical"), clock.now_ms))
+        clock.advance(1)
         correction = policy.observe(obs("browser", 1000, "vertical"), clock.now_ms)
-        self.assertIsNotNone(correction)
-        self.assertEqual("horizontal", correction.orientation)
 
-    def test_stale_verification_mismatch_does_not_assign_override_to_new_region(self):
+        self.assertEqual("horizontal", correction.orientation)
+        self.assertEqual("narrow", correction.region)
+        self.assertGreater(correction.generation, old_request.generation)
+
+    def test_stale_verification_mismatch_does_not_assign_manual_override_to_current_region(self):
+        clock = FakeClock()
+        sink = FakeAdapterSink()
+        policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=100, min_switch_interval_ms=0))
+
+        policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
+        clock.advance(100)
+        old_request = sink.record(policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms))
+
+        clock.advance(10)
+        policy.observe(obs("browser", 1000, "horizontal"), clock.now_ms)
+        clock.advance(10)
+        self.assertIs(sink.complete(policy, old_request, clock, actual_orientation="horizontal"), False)
+
+        state = policy._scopes[("scope-a", "epoch-1")]
+        self.assertIsNone(state.manual_override_region)
+        self.assertTrue(state.requalification_required)
+
+    def test_request_already_applied_before_region_observation_is_owned_stale_effect_not_manual_override(self):
         clock = FakeClock()
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=100, min_switch_interval_ms=0))
 
@@ -98,13 +122,18 @@ class FakeAdapterTimingTests(unittest.TestCase):
         clock.advance(100)
         old_request = policy.observe(obs("browser", 1500, "horizontal"), clock.now_ms)
 
+        # The old adapter side effect becomes visible before its verification callback.
         clock.advance(10)
-        policy.observe(obs("browser", 1000, "horizontal"), clock.now_ms)
-        clock.advance(10)
-        policy.verify(old_request, "horizontal", clock.now_ms)
-
+        self.assertIsNone(policy.observe(obs("browser", 1000, "vertical"), clock.now_ms))
         state = policy._scopes[("scope-a", "epoch-1")]
         self.assertIsNone(state.manual_override_region)
+
+        clock.advance(99)
+        self.assertIsNone(policy.observe(obs("browser", 1000, "vertical"), clock.now_ms))
+        clock.advance(1)
+        correction = policy.observe(obs("browser", 1000, "vertical"), clock.now_ms)
+        self.assertEqual("horizontal", correction.orientation)
+        self.assertGreater(correction.generation, old_request.generation)
 
 
 if __name__ == "__main__":

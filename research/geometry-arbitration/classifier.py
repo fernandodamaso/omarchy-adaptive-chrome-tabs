@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Any, Mapping
+from typing import Any, Collection, Mapping, Optional
 
 DEFAULT_APP_ID_ALLOWLIST = frozenset({
     "google-chrome",
     "google-chrome-stable",
     "chromium",
 })
+
+DEFAULT_BROWSER_CHANNEL_ALLOWLIST = frozenset({"stable"})
+KNOWN_BROWSER_CHANNELS = frozenset({"stable", "beta", "dev", "canary"})
 
 EXPLICIT_NON_CONTROLLING_SURFACES = frozenset({
     "pwa",
@@ -45,8 +48,26 @@ def _finite_positive_number(value: Any) -> bool:
     return math.isfinite(float(value)) and float(value) > 0
 
 
-def classify_window(observation: Mapping[str, Any]) -> Classification:
+def _normalized_channel_allowlist(channels: Optional[Collection[str]]) -> frozenset[str]:
+    if channels is None:
+        return DEFAULT_BROWSER_CHANNEL_ALLOWLIST
+    normalized = frozenset(str(channel).strip().lower() for channel in channels)
+    if not normalized or not normalized.issubset(KNOWN_BROWSER_CHANNELS):
+        raise ValueError("allowed_browser_channels must contain only stable/beta/dev/canary")
+    return normalized
+
+
+def classify_window(
+    observation: Mapping[str, Any],
+    *,
+    allowed_browser_channels: Optional[Collection[str]] = None,
+) -> Classification:
     """Classify normalized compositor evidence without consulting titles or URLs.
+
+    Stable is the only controlling browser channel by default. A non-stable channel
+    must be explicitly included in ``allowed_browser_channels`` *and* carry separate
+    local qualification via ``browserChannelQualified=True``. App-ID/package
+    allowlisting alone never qualifies Beta/Dev/Canary.
 
     This prototype intentionally requires local qualification to normalize a surface as
     ``normal-tabbed`` and to mark its package identity as qualified. Unknown evidence
@@ -65,6 +86,17 @@ def classify_window(observation: Mapping[str, Any]) -> Classification:
     app_id = str(observation.get("appId") or "").strip().lower()
     if app_id not in DEFAULT_APP_ID_ALLOWLIST:
         return Classification("ineligible", "app-id-not-allowlisted")
+
+    channel = str(observation.get("browserChannel") or "").strip().lower()
+    if channel not in KNOWN_BROWSER_CHANNELS:
+        return Classification("ambiguous", "browser-channel-unqualified")
+
+    allowed_channels = _normalized_channel_allowlist(allowed_browser_channels)
+    if channel not in allowed_channels:
+        return Classification("ineligible", "browser-channel-not-allowlisted")
+
+    if channel != "stable" and observation.get("browserChannelQualified") is not True:
+        return Classification("ambiguous", "browser-channel-unqualified")
 
     package = observation.get("package")
     if not isinstance(package, Mapping) or package.get("qualified") is not True:

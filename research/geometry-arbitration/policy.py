@@ -109,6 +109,7 @@ class SwitchRequest:
     orientation: str
     region: str
     reason: str
+    generation: int
 
 
 @dataclass
@@ -116,8 +117,14 @@ class _ScopeState:
     region: str
     known_orientation: str
     last_width: float
+    current_window_key: str
     manual_override_region: Optional[str] = None
     expected_orientation: Optional[str] = None
+    inflight_generation: Optional[int] = None
+    inflight_window_key: Optional[str] = None
+    inflight_region: Optional[str] = None
+    requalification_required: bool = False
+    stale_completion_orientation: Optional[str] = None
 
 
 @dataclass
@@ -167,16 +174,23 @@ def resolve_config(candidate: Mapping[str, Any], prior: Optional[PolicyConfig]):
 
 
 class ArbitrationPolicy:
-    """State machine prototype that returns requests instead of invoking an adapter."""
+    """State machine prototype that returns requests instead of invoking an adapter.
+
+    The first observation after construction is the enable/reload snapshot. With
+    ``apply_on_startup=False`` only an eligible target in that snapshot is baselined.
+    If the snapshot contains no eligible target, the next eligible target is evaluated
+    normally and must satisfy the full dwell.
+    """
 
     def __init__(self, config: PolicyConfig):
         self.config = config
         self._scopes: dict[tuple[str, str], _ScopeState] = {}
         self._pending: Optional[_Pending] = None
-        self._startup_baseline_claimed = False
+        self._startup_snapshot_consumed = False
         self._last_emit_ms: Optional[int] = None
         self._last_now_ms: Optional[int] = None
         self._suspended = False
+        self._next_generation = 1
 
     def _check_time(self, now_ms: int) -> None:
         if isinstance(now_ms, bool) or not isinstance(now_ms, int) or now_ms < 0:
@@ -196,11 +210,60 @@ class ArbitrationPolicy:
     def _cancel_pending(self) -> None:
         self._pending = None
 
+    @staticmethod
+    def _clear_inflight(state: _ScopeState) -> None:
+        state.expected_orientation = None
+        state.inflight_generation = None
+        state.inflight_window_key = None
+        state.inflight_region = None
+
+    def _pending_scope_key(self) -> Optional[tuple[str, str]]:
+        if self._pending is None:
+            return None
+        return self._pending.scope_token, self._pending.scope_epoch
+
+    def _invalidate_active_work_for_recovery(self) -> None:
+        """Cancel active candidate/request work while preserving a fresh-dwell obligation."""
+        pending_key = self._pending_scope_key()
+        if pending_key is not None:
+            state = self._scopes.get(pending_key)
+            if state is not None:
+                state.requalification_required = True
+        self._cancel_pending()
+
+        for state in self._scopes.values():
+            if state.inflight_generation is not None:
+                state.requalification_required = True
+                self._clear_inflight(state)
+
+    def _start_pending(
+        self,
+        *,
+        key: tuple[str, str],
+        window_key: str,
+        region: str,
+        desired: str,
+        now_ms: int,
+        reason: str,
+    ) -> None:
+        self._pending = _Pending(
+            scope_token=key[0],
+            scope_epoch=key[1],
+            window_key=window_key,
+            region=region,
+            desired_orientation=desired,
+            started_ms=now_ms,
+            reason=reason,
+        )
+
     def observe(self, observation: Observation, now_ms: int) -> Optional[SwitchRequest]:
         self._check_time(now_ms)
 
+        startup_snapshot = not self._startup_snapshot_consumed
+        self._startup_snapshot_consumed = True
+
         if self._suspended:
-            self._cancel_pending()
+            self._invalidate_active_work_for_recovery()
             return None
 
         key = self._scope_key(observation)
@@ -214,7 +277,7 @@ class ArbitrationPolicy:
             and bool(str(observation.window_key or "").strip())
         )
         if not valid:
-            self._cancel_pending()
+            self._invalidate_active_work_for_recovery()
             return None
 
         assert key is not None
@@ -227,23 +290,21 @@ class ArbitrationPolicy:
                 region=region,
                 known_orientation=observation.orientation,
                 last_width=float(observation.width),
+                current_window_key=observation.window_key,
             )
             self._scopes[key] = state
 
-            if not self._startup_baseline_claimed and not self.config.apply_on_startup:
-                self._startup_baseline_claimed = True
+            if startup_snapshot and not self.config.apply_on_startup:
                 self._cancel_pending()
                 return None
 
-            self._startup_baseline_claimed = True
             if desired is not None and desired != observation.orientation:
-                self._pending = _Pending(
-                    scope_token=key[0],
-                    scope_epoch=key[1],
+                self._start_pending(
+                    key=key,
                     window_key=observation.window_key,
                     region=region,
-                    desired_orientation=desired,
-                    started_ms=now_ms,
+                    desired=desired,
+                    now_ms=now_ms,
                     reason="initial-scope-evaluation",
                 )
             return self._maybe_emit(observation, now_ms)
@@ -251,15 +312,68 @@ class ArbitrationPolicy:
         previous_region = state.region
         manual_changed_now = False
 
-        # An orientation divergence with no outstanding owned request is external/manual.
+        # A request stops being current as soon as its scope/window/region binding no
+        # longer matches the live eligible target. Its completion must verify as stale.
+        invalidated_expected_orientation: Optional[str] = None
+        if state.inflight_generation is not None and (
+            state.inflight_window_key != observation.window_key
+            or state.inflight_region != region
+        ):
+            invalidated_expected_orientation = state.expected_orientation
+            state.requalification_required = True
+            self._clear_inflight(state)
+
+        state.current_window_key = observation.window_key
+
+        # A stale request may have applied before or after its binding was invalidated.
+        # Treat that owned orientation as a recovery signal, not a manual override.
         if state.expected_orientation is None and observation.orientation != state.known_orientation:
-            state.known_orientation = observation.orientation
-            state.manual_override_region = region
-            manual_changed_now = True
-            self._cancel_pending()
+            if (
+                state.stale_completion_orientation == observation.orientation
+                or invalidated_expected_orientation == observation.orientation
+            ):
+                state.known_orientation = observation.orientation
+                if state.stale_completion_orientation == observation.orientation:
+                    state.stale_completion_orientation = None
+            else:
+                state.known_orientation = observation.orientation
+                state.manual_override_region = region
+                manual_changed_now = True
+                self._cancel_pending()
+        elif state.stale_completion_orientation == observation.orientation:
+            state.stale_completion_orientation = None
 
         region_changed = region != previous_region
         state.last_width = float(observation.width)
+
+        if state.requalification_required:
+            state.requalification_required = False
+            state.region = region
+
+            if region == "band":
+                self._cancel_pending()
+                return None
+
+            if state.manual_override_region is not None and state.manual_override_region != region and not manual_changed_now:
+                state.manual_override_region = None
+
+            if manual_changed_now or state.manual_override_region == region:
+                self._cancel_pending()
+                return None
+
+            if desired is not None and desired != observation.orientation:
+                self._start_pending(
+                    key=key,
+                    window_key=observation.window_key,
+                    region=region,
+                    desired=desired,
+                    now_ms=now_ms,
+                    reason="recovery-requalification",
+                )
+            else:
+                self._cancel_pending()
+                state.known_orientation = observation.orientation
+            return self._maybe_emit(observation, now_ms)
 
         if region_changed:
             state.region = region
@@ -275,13 +389,12 @@ class ArbitrationPolicy:
                 return None
 
             if desired is not None and desired != observation.orientation and state.manual_override_region != region:
-                self._pending = _Pending(
-                    scope_token=key[0],
-                    scope_epoch=key[1],
+                self._start_pending(
+                    key=key,
                     window_key=observation.window_key,
                     region=region,
-                    desired_orientation=desired,
-                    started_ms=now_ms,
+                    desired=desired,
+                    now_ms=now_ms,
                     reason="effective-region-transition",
                 )
             else:
@@ -295,13 +408,12 @@ class ArbitrationPolicy:
                 self._cancel_pending()
                 return None
             if self._pending.window_key != observation.window_key:
-                self._pending = _Pending(
-                    scope_token=key[0],
-                    scope_epoch=key[1],
+                self._start_pending(
+                    key=key,
                     window_key=observation.window_key,
                     region=region,
-                    desired_orientation=self._pending.desired_orientation,
-                    started_ms=now_ms,
+                    desired=self._pending.desired_orientation,
+                    now_ms=now_ms,
                     reason="candidate-window-changed",
                 )
 
@@ -331,6 +443,8 @@ class ArbitrationPolicy:
             self._cancel_pending()
             return None
 
+        generation = self._next_generation
+        self._next_generation += 1
         request = SwitchRequest(
             window_key=pending.window_key,
             scope_token=pending.scope_token,
@@ -338,24 +452,60 @@ class ArbitrationPolicy:
             orientation=pending.desired_orientation,
             region=pending.region,
             reason=pending.reason,
+            generation=generation,
         )
         state.expected_orientation = pending.desired_orientation
+        state.inflight_generation = generation
+        state.inflight_window_key = pending.window_key
+        state.inflight_region = pending.region
         self._last_emit_ms = now_ms
         self._cancel_pending()
         return request
 
-    def verify(self, request: SwitchRequest, actual_orientation: str, now_ms: int) -> None:
+    def verify(self, request: SwitchRequest, actual_orientation: str, now_ms: int) -> bool:
+        """Accept verification only for the request still current for its binding.
+
+        Returns ``True`` when the completion belongs to the current request. Stale
+        completions return ``False`` and cannot update known/manual state. A stale
+        completion does force conservative requalification so any late side effect is
+        observed afresh and must satisfy a full dwell before a correcting request.
+        """
+
         self._check_time(now_ms)
         if actual_orientation not in VALID_ORIENTATIONS:
             raise ValueError("actual_orientation must be horizontal or vertical")
         key = (request.scope_token, request.scope_epoch)
         state = self._scopes.get(key)
         if state is None:
-            return
+            return False
+
+        current = (
+            state.inflight_generation == request.generation
+            and state.inflight_window_key == request.window_key
+            and state.inflight_region == request.region
+            and state.expected_orientation == request.orientation
+            and state.current_window_key == request.window_key
+            and state.region == request.region
+        )
+        if not current:
+            state.stale_completion_orientation = actual_orientation
+            state.requalification_required = True
+
+            pending_key = self._pending_scope_key()
+            if pending_key == key:
+                self._cancel_pending()
+
+            # If a newer request exists for this scope, the stale completion may race
+            # with it too; invalidate that request rather than accepting either result.
+            if state.inflight_generation is not None:
+                self._clear_inflight(state)
+            return False
+
         state.known_orientation = actual_orientation
-        state.expected_orientation = None
+        self._clear_inflight(state)
         if actual_orientation != request.orientation:
-            state.manual_override_region = state.region
+            state.manual_override_region = request.region
+        return True
 
     def expire_scope(self, token: str, epoch: str) -> None:
         key = (token, epoch)
@@ -376,8 +526,12 @@ class ArbitrationPolicy:
         self._cancel_pending()
 
         # Safe choice required by FDM-822: baseline all currently known scopes on a
-        # valid config revision. No request is created by the revision itself.
+        # valid config revision. No request is created by the revision itself. Any old
+        # in-flight request is no longer current under the new revision.
         for state in self._scopes.values():
+            self._clear_inflight(state)
+            state.requalification_required = False
+            state.stale_completion_orientation = None
             if _valid_width(state.last_width):
                 state.region = region_for_width(state.last_width, self.config)
         return True, ""
@@ -385,9 +539,9 @@ class ArbitrationPolicy:
     def suspend(self, now_ms: int) -> None:
         self._check_time(now_ms)
         self._suspended = True
-        self._cancel_pending()
+        self._invalidate_active_work_for_recovery()
 
     def resume(self, now_ms: int) -> None:
         self._check_time(now_ms)
         self._suspended = False
-        self._cancel_pending()
+        # The recovery obligation established by suspend is intentionally retained.

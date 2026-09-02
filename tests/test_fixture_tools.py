@@ -53,12 +53,38 @@ class FixtureSanitizerTests(unittest.TestCase):
         self.assertEqual("unverified", fixture["observation"]["geometry"]["unit"])
         self.assertFalse(fixture["observation"]["normalIdentityProven"])
         self.assertFalse(fixture["observation"]["package"]["qualified"])
+        self.assertEqual("unknown", fixture["observation"]["browserChannel"])
+        self.assertFalse(fixture["observation"]["browserChannelQualified"])
+        self.assertIn("notes", fixture)
+        self.assertNotIn("qualificationNotes", fixture)
 
-    def test_sanitizer_refuses_missing_or_invalid_size(self):
+    def test_browser_channel_is_explicit_and_never_inferred_from_app_id(self):
+        raw = {
+            "size": [1500, 900],
+            "class": "google-chrome",
+            "initialClass": "google-chrome",
+        }
+        default_fixture = sanitize_hyprland_client(raw, fixture_id="default-channel")
+        self.assertEqual("unknown", default_fixture["observation"]["browserChannel"])
+
+        beta_fixture = sanitize_hyprland_client(
+            raw,
+            fixture_id="beta-channel",
+            browser_channel="beta",
+            browser_channel_qualified=True,
+        )
+        self.assertEqual("beta", beta_fixture["observation"]["browserChannel"])
+        self.assertTrue(beta_fixture["observation"]["browserChannelQualified"])
+
+    def test_sanitizer_refuses_missing_invalid_size_or_unknown_enumerated_metadata(self):
         with self.assertRaises(ValueError):
             sanitize_hyprland_client({}, fixture_id="missing-size")
         with self.assertRaises(ValueError):
             sanitize_hyprland_client({"size": [0, 900]}, fixture_id="bad-size")
+        with self.assertRaises(ValueError):
+            sanitize_hyprland_client({"size": [1200, 900]}, fixture_id="bad-channel", browser_channel="nightly")
+        with self.assertRaises(ValueError):
+            sanitize_hyprland_client({"size": [1200, 900]}, fixture_id="bad-package", package_source="custom")
 
 
 if __name__ == "__main__":

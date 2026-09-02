@@ -13,6 +13,13 @@ class FakeAdapterSink:
     def __init__(self):
         self.requests = []
 
-    def apply_and_verify(self, policy, request, clock, actual_orientation=None):
+    def record(self, request):
         self.requests.append(request)
-        policy.verify(request, actual_orientation or request.orientation, clock.now_ms)
+        return request
+
+    def complete(self, policy, request, clock, actual_orientation=None):
+        return policy.verify(request, actual_orientation or request.orientation, clock.now_ms)
+
+    def apply_and_verify(self, policy, request, clock, actual_orientation=None):
+        self.record(request)
+        return self.complete(policy, request, clock, actual_orientation)

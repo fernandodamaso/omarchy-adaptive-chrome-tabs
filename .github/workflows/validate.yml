@@ -100,38 +100,72 @@ jobs:
           python -m unittest discover -s tests -p 'test_*.py'
           python -m compileall -q research/geometry-arbitration tests
 
-      - name: Guard committed fixtures against obvious private browser data
+      - name: Guard tracked FDM-822 research and fixtures against private browser data
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
+          import json
           import re
+          import subprocess
           from pathlib import Path
 
-          root = Path('tests/fixtures')
-          patterns = {
+          tracked = subprocess.check_output(
+              ['git', 'ls-files', '-z', 'research/geometry-arbitration', 'tests/fixtures'],
+          ).decode('utf-8').split('\0')
+          paths = [Path(value) for value in tracked if value]
+
+          content_patterns = {
               'URL': re.compile(r'https?://|chrome-extension://', re.I),
               'home path': re.compile(r'/(?:home|Users)/[^/\s]+', re.I),
               'profile path/name': re.compile(r'(?:Profile\s+\d+|Default)/(?:Preferences|History|Cookies)?', re.I),
               'email-like account': re.compile(r'\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b', re.I),
           }
+          forbidden_json_keys = {
+              'account', 'accountId', 'address', 'commandLine', 'documentName',
+              'email', 'initialTitle', 'pid', 'profile', 'profileName', 'profilePath',
+              'title', 'token', 'url', 'workspaceName',
+          }
+          risky_evidence_label = re.compile(
+              r'^\s*(?:account(?:Id)?|documentName|email|initialTitle|profile(?:Name|Path)?|title|token|url|workspaceName)\s*[:=]',
+              re.I | re.M,
+          )
           failures = []
-          for path in root.rglob('*'):
-              if not path.is_file() or path.name == 'README.md' or 'raw' in path.parts:
+
+          def walk_json(value, path):
+              if isinstance(value, dict):
+                  for key, nested in value.items():
+                      if key in forbidden_json_keys:
+                          failures.append(f'{path}: forbidden private-data key {key!r}')
+                      walk_json(nested, path)
+              elif isinstance(value, list):
+                  for nested in value:
+                      walk_json(nested, path)
+
+          for path in paths:
+              if not path.is_file():
                   continue
               text = path.read_text(encoding='utf-8', errors='replace')
-              for label, pattern in patterns.items():
+              for label, pattern in content_patterns.items():
                   if pattern.search(text):
                       failures.append(f'{path}: possible {label} leakage')
+              if path.suffix.lower() in {'.md', '.json', '.txt', '.log', '.yaml', '.yml'} and risky_evidence_label.search(text):
+                  failures.append(f'{path}: possible private-data evidence label')
+              if path.suffix.lower() == '.json':
+                  try:
+                      walk_json(json.loads(text), path)
+                  except json.JSONDecodeError as exc:
+                      failures.append(f'{path}: invalid JSON during privacy scan: {exc}')
+
           if failures:
-              raise SystemExit('\n'.join(failures))
+              raise SystemExit('\n'.join(sorted(set(failures))))
           PY
 
       - name: Heuristic common-secret scan
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -nE '(gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY)' -- ':!*.md' ':!LICENSE'; then
+          if git grep -nE '(gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY)' -- ':!LICENSE'; then
             echo 'possible committed secret detected' >&2
             exit 1
           fi

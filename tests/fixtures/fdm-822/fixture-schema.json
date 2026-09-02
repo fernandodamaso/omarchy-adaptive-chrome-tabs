@@ -6,13 +6,16 @@
         "eligible",
         "ineligible",
         "ambiguous"
-      ]
+      ],
+      "type": "string"
     },
     "fixtureId": {
+      "minLength": 1,
       "type": "string"
     },
     "issue": {
-      "const": "FDM-822"
+      "const": "FDM-822",
+      "type": "string"
     },
     "notes": {
       "items": {
@@ -21,6 +24,7 @@
       "type": "array"
     },
     "observation": {
+      "additionalProperties": false,
       "properties": {
         "active": {
           "type": "boolean"
@@ -35,32 +39,43 @@
             "dev",
             "canary",
             "unknown"
-          ]
+          ],
+          "type": "string"
+        },
+        "browserChannelQualified": {
+          "type": "boolean"
         },
         "displayMode": {
           "enum": [
             "native-wayland",
             "xwayland",
             "unknown"
-          ]
+          ],
+          "type": "string"
+        },
+        "floating": {
+          "type": "boolean"
         },
         "fullscreen": {
           "type": "boolean"
         },
         "geometry": {
+          "additionalProperties": false,
           "properties": {
             "height": {
               "exclusiveMinimum": 0,
               "type": "number"
             },
             "sourceField": {
+              "minLength": 1,
               "type": "string"
             },
             "unit": {
               "enum": [
                 "logical",
                 "unverified"
-              ]
+              ],
+              "type": "string"
             },
             "width": {
               "exclusiveMinimum": 0,
@@ -75,6 +90,9 @@
           ],
           "type": "object"
         },
+        "hidden": {
+          "type": "boolean"
+        },
         "immersive": {
           "type": "boolean"
         },
@@ -84,6 +102,9 @@
         "kiosk": {
           "type": "boolean"
         },
+        "mapped": {
+          "type": "boolean"
+        },
         "maximized": {
           "type": "boolean"
         },
@@ -91,6 +112,7 @@
           "type": "boolean"
         },
         "package": {
+          "additionalProperties": false,
           "properties": {
             "qualified": {
               "type": "boolean"
@@ -102,7 +124,8 @@
                 "snap",
                 "wrapper",
                 "unknown"
-              ]
+              ],
+              "type": "string"
             }
           },
           "required": [
@@ -111,6 +134,9 @@
           ],
           "type": "object"
         },
+        "pinned": {
+          "type": "boolean"
+        },
         "privacyScopeProven": {
           "type": "boolean"
         },
@@ -118,6 +144,24 @@
           "type": "boolean"
         },
         "surfaceKind": {
+          "enum": [
+            "normal-tabbed",
+            "unknown",
+            "pwa",
+            "app",
+            "devtools",
+            "extension-popup",
+            "dialog",
+            "file-picker",
+            "auth-dialog",
+            "pip",
+            "first-run",
+            "crash-recovery",
+            "update-bubble",
+            "incognito",
+            "guest",
+            "managed"
+          ],
           "type": "string"
         },
         "surfaceRole": {
@@ -125,7 +169,11 @@
             "application-toplevel",
             "layer-shell",
             "none"
-          ]
+          ],
+          "type": "string"
+        },
+        "xwayland": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -148,17 +196,21 @@
       "type": "object"
     },
     "provenance": {
+      "additionalProperties": false,
       "properties": {
         "capture": {
+          "minLength": 1,
           "type": "string"
         },
         "kind": {
           "enum": [
             "synthetic",
             "local-sanitized"
-          ]
+          ],
+          "type": "string"
         },
         "stackFingerprint": {
+          "minLength": 1,
           "type": "string"
         }
       },
@@ -170,7 +222,8 @@
       "type": "object"
     },
     "schemaVersion": {
-      "const": 1
+      "const": 1,
+      "type": "integer"
     }
   },
   "required": [

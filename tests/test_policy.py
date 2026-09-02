@@ -94,6 +94,7 @@ class ArbitrationPolicyTests(unittest.TestCase):
         self.assertEqual("vertical", request.orientation)
         self.assertEqual("scope-a", request.scope_token)
         self.assertEqual("epoch-1", request.scope_epoch)
+        self.assertGreaterEqual(request.generation, 1)
 
     def test_apply_on_startup_true_evaluates_initial_scope_after_dwell(self):
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=750))
@@ -128,6 +129,7 @@ class ArbitrationPolicyTests(unittest.TestCase):
                 policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100, min_switch_interval_ms=0))
                 policy.observe(obs(width=1300), 0)
                 policy.observe(obs(width=1500), 10)
+                # The classifier maps each of these modes to eligible=False.
                 self.assertIsNone(policy.observe(obs(width=1500, eligible=False), 50))
                 self.assertIsNone(policy.observe(obs(width=1500), 200))
                 request = policy.observe(obs(width=1500), 300)
@@ -159,7 +161,7 @@ class ArbitrationPolicyTests(unittest.TestCase):
     def test_ordinary_settled_same_region_focus_away_and_refocus_is_noop(self):
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=0, min_switch_interval_ms=0))
         request = policy.observe(obs(width=1500, orientation="horizontal"), 0)
-        policy.verify(request, "vertical", 0)
+        self.assertTrue(policy.verify(request, "vertical", 0))
 
         self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical", focused=False, eligible=False), 10))
         self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 20))
@@ -180,7 +182,7 @@ class ArbitrationPolicyTests(unittest.TestCase):
         policy.observe(obs(scope="scope-a", width=1500, orientation="horizontal"), 0)
         first = policy.observe(obs(scope="scope-a", width=1500, orientation="horizontal"), 100)
         self.assertEqual("vertical", first.orientation)
-        policy.verify(first, "vertical", 100)
+        self.assertTrue(policy.verify(first, "vertical", 100))
 
         policy.observe(obs(scope="scope-b", epoch="epoch-b", width=1000, orientation="vertical"), 200)
         self.assertIsNone(policy.observe(obs(scope="scope-b", epoch="epoch-b", width=1000, orientation="vertical"), 1000))
@@ -190,11 +192,16 @@ class ArbitrationPolicyTests(unittest.TestCase):
     def test_manual_external_change_suspends_same_region_until_later_effective_transition(self):
         policy = ArbitrationPolicy(PolicyConfig(decision_dwell_ms=100))
         policy.observe(obs(width=1000, orientation="horizontal"), 0)
+        # External/manual orientation change in narrow.
         self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 10))
+        # Same-region refocus must not correct it.
         policy.observe(obs(width=1000, orientation="vertical", focused=False, eligible=False), 20)
         self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 30))
+        # Band alone does not clear the override or emit.
         self.assertIsNone(policy.observe(obs(width=1300, orientation="vertical"), 40))
+        # A later effective transition into wide clears the old-region override.
         self.assertIsNone(policy.observe(obs(width=1500, orientation="vertical"), 50))
+        # Returning through band and then narrow can automate again after a fresh dwell.
         self.assertIsNone(policy.observe(obs(width=1300, orientation="vertical"), 60))
         self.assertIsNone(policy.observe(obs(width=1000, orientation="vertical"), 70))
         request = policy.observe(obs(width=1000, orientation="vertical"), 170)
@@ -210,7 +217,7 @@ class ArbitrationPolicyTests(unittest.TestCase):
     def test_current_verification_mismatch_owns_manual_override_only_for_request_region(self):
         policy = ArbitrationPolicy(PolicyConfig(apply_on_startup=True, decision_dwell_ms=0, min_switch_interval_ms=0))
         request = policy.observe(obs(width=1500, orientation="horizontal"), 0)
-        policy.verify(request, "horizontal", 10)
+        self.assertTrue(policy.verify(request, "horizontal", 10))
         self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 20))
         self.assertIsNone(policy.observe(obs(width=1500, orientation="horizontal"), 500))
 
