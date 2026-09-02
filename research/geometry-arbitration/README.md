@@ -2,7 +2,10 @@
 
 This lane prepares the remote-safe part of FDM-822: a fail-closed eligible-window classifier, pure arbitration policy, synthetic sanitized fixtures, bounded capture helpers, deterministic tests, and the local Omarchy qualification procedure.
 
-**Status: local evidence pending. No GO/NO-GO decision is recorded by this branch.**
+**Status: local qualification complete — NO-GO.** See
+`LOCAL_EVIDENCE_TEMPLATE.md` for the sanitized evidence report. This result
+blocks production implementation; the pure classifier/policy and bounded
+capture helpers remain safe research artifacts.
 
 ## Hard boundary
 
