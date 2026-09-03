@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "evidenceOrigin": "transcribed-from-pre-existing-sanitized-local-record",
+  "reproducedByCurrentRemoteChange": false,
+  "browserFamily": "chrome",
+  "browserVersion": "152.0.7977.64-1",
+  "windowBackend": "wayland",
+  "applicationMatched": true,
+  "observedRoles": [
+    "application",
+    "frame",
+    "frame",
+    "frame"
+  ],
+  "focusedPredicates": {
+    "applicationFocused": false,
+    "anyTopLevelFrameFocused": false
+  },
+  "actionCapabilityPredicates": {
+    "anyNativeActionCapabilityObserved": true,
+    "stateSpecificOrientationActionObservedInReadOnlyTopology": false
+  },
+  "probeBehaviorPredicates": {
+    "menuOpenAttempted": false,
+    "orientationMutationAttempted": false,
+    "webDocumentSubtreeTraversed": false
+  },
+  "enabledPredicateCoverage": false,
+  "earlyExitReason": "focused-top-level-target-identity-unavailable"
+}
