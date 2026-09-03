@@ -1,0 +1,40 @@
+{
+  "expectedClassification": "ambiguous",
+  "fixtureId": "wrapper-unqualified",
+  "issue": "FDM-822",
+  "notes": [
+    "Synthetic only; does not prove live compositor metadata or package identity."
+  ],
+  "observation": {
+    "active": true,
+    "appId": "google-chrome-stable",
+    "browserChannel": "stable",
+    "displayMode": "native-wayland",
+    "fullscreen": false,
+    "geometry": {
+      "height": 900.0,
+      "sourceField": "hyprctl.clients.size[0]",
+      "unit": "logical",
+      "width": 1500.0
+    },
+    "immersive": false,
+    "initialAppId": "google-chrome-stable",
+    "kiosk": false,
+    "maximized": false,
+    "normalIdentityProven": true,
+    "package": {
+      "qualified": false,
+      "source": "wrapper"
+    },
+    "privacyScopeProven": false,
+    "sessionLocked": false,
+    "surfaceKind": "normal-tabbed",
+    "surfaceRole": "application-toplevel"
+  },
+  "provenance": {
+    "capture": "hand-authored-policy-fixture",
+    "kind": "synthetic",
+    "stackFingerprint": "SYNTHETIC-NO-LIVE-VERSIONS"
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,239 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "expectedClassification": {
+      "enum": [
+        "eligible",
+        "ineligible",
+        "ambiguous"
+      ],
+      "type": "string"
+    },
+    "fixtureId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "issue": {
+      "const": "FDM-822",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "observation": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "appId": {
+          "type": "string"
+        },
+        "browserChannel": {
+          "enum": [
+            "stable",
+            "beta",
+            "dev",
+            "canary",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "browserChannelQualified": {
+          "type": "boolean"
+        },
+        "displayMode": {
+          "enum": [
+            "native-wayland",
+            "xwayland",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "floating": {
+          "type": "boolean"
+        },
+        "fullscreen": {
+          "type": "boolean"
+        },
+        "geometry": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            "sourceField": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "logical",
+                "unverified"
+              ],
+              "type": "string"
+            },
+            "width": {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height",
+            "unit",
+            "sourceField"
+          ],
+          "type": "object"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "immersive": {
+          "type": "boolean"
+        },
+        "initialAppId": {
+          "type": "string"
+        },
+        "kiosk": {
+          "type": "boolean"
+        },
+        "mapped": {
+          "type": "boolean"
+        },
+        "maximized": {
+          "type": "boolean"
+        },
+        "normalIdentityProven": {
+          "type": "boolean"
+        },
+        "package": {
+          "additionalProperties": false,
+          "properties": {
+            "qualified": {
+              "type": "boolean"
+            },
+            "source": {
+              "enum": [
+                "native",
+                "flatpak",
+                "snap",
+                "wrapper",
+                "unknown"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "qualified"
+          ],
+          "type": "object"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "privacyScopeProven": {
+          "type": "boolean"
+        },
+        "sessionLocked": {
+          "type": "boolean"
+        },
+        "surfaceKind": {
+          "enum": [
+            "normal-tabbed",
+            "unknown",
+            "pwa",
+            "app",
+            "devtools",
+            "extension-popup",
+            "dialog",
+            "file-picker",
+            "auth-dialog",
+            "pip",
+            "first-run",
+            "crash-recovery",
+            "update-bubble",
+            "incognito",
+            "guest",
+            "managed"
+          ],
+          "type": "string"
+        },
+        "surfaceRole": {
+          "enum": [
+            "application-toplevel",
+            "layer-shell",
+            "none"
+          ],
+          "type": "string"
+        },
+        "xwayland": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "active",
+        "sessionLocked",
+        "surfaceRole",
+        "appId",
+        "initialAppId",
+        "browserChannel",
+        "surfaceKind",
+        "normalIdentityProven",
+        "privacyScopeProven",
+        "package",
+        "geometry",
+        "fullscreen",
+        "immersive",
+        "kiosk",
+        "maximized"
+      ],
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "capture": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "synthetic",
+            "local-sanitized"
+          ],
+          "type": "string"
+        },
+        "stackFingerprint": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "stackFingerprint",
+        "capture"
+      ],
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "fixtureId",
+    "issue",
+    "provenance",
+    "observation",
+    "expectedClassification"
+  ],
+  "schemaVersion": 1,
+  "type": "object"
+}
